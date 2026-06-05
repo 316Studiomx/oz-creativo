@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { COPY } from '../config/copy'
 import { PullQuote } from '../components/PullQuote'
 import { Magnetic } from '../components/Magnetic'
+import { LeadForm } from '../components/LeadForm'
 
 export function Contact() {
   return (
@@ -43,6 +44,8 @@ export function Contact() {
             <span aria-hidden>→</span>
           </a>
         </Magnetic>
+
+        <LeadForm />
       </div>
 
       {/* Footer */}

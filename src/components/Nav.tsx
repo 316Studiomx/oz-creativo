@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { COPY } from '../config/copy'
 import { Magnetic } from './Magnetic'
+import { CONTACT_FORM_ANCHOR } from '../config/contactForm'
 
 export function Nav() {
   const [scrolled, setScrolled] = useState(false)
@@ -39,7 +40,7 @@ export function Nav() {
         <div className="hidden md:block">
           <Magnetic strength={0.35}>
             <a
-              href="#hablemos"
+              href={CONTACT_FORM_ANCHOR}
               className="rounded-full bg-yellow px-5 py-2.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.03]"
             >
               {COPY.nav.cta}
@@ -90,7 +91,7 @@ export function Nav() {
           ))}
           <li>
             <a
-              href="#hablemos"
+              href={CONTACT_FORM_ANCHOR}
               onClick={() => setOpen(false)}
               className="inline-block rounded-full bg-yellow px-5 py-2.5 font-semibold text-ink"
             >

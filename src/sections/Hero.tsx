@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { COPY } from '../config/copy'
 import { Magnetic } from '../components/Magnetic'
 import { useState } from 'react'
+import { CONTACT_FORM_ANCHOR } from '../config/contactForm'
 
 const reveal = {
   hidden: { opacity: 0, y: 28 },
@@ -73,7 +74,7 @@ export function Hero() {
           >
             <Magnetic strength={0.35}>
               <a
-                href="#hablemos"
+                href={CONTACT_FORM_ANCHOR}
                 className="rounded-full bg-yellow px-7 py-3.5 text-sm font-semibold text-ink transition-transform hover:scale-[1.03] md:text-base"
               >
                 {COPY.hero.ctaPrimary}

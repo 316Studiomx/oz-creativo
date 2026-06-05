@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { COPY } from '../config/copy'
 import { ServiceCard } from '../components/ServiceCard'
+import { CONTACT_FORM_ANCHOR } from '../config/contactForm'
 
 export function Services() {
   return (
@@ -32,7 +33,7 @@ export function Services() {
               title={s.title}
               body={s.body}
               cta={s.cta}
-              href="#hablemos"
+              href={CONTACT_FORM_ANCHOR}
               index={i}
             />
           ))}
