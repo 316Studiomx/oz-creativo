@@ -24,11 +24,11 @@ export const REFERRAL_OPTIONS = [
 ] as const
 
 export const BUDGET_OPTIONS = [
-  'Por definir',
-  'Menos de $50,000 MXN',
-  '$50,000 a $100,000 MXN',
-  '$100,000 a $250,000 MXN',
-  'Más de $250,000 MXN',
+  '$500 USD a $999',
+  '$1,000 a $1,999',
+  '$2,000 a $4,999 USD',
+  '$4,999 a $9,999 USD',
+  '$10,000 USD a $100,000 USD',
 ] as const
 
 export type ContactFormPayload = {
