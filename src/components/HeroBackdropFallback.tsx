@@ -28,7 +28,7 @@ export function HeroBackdropFallback() {
         >
           <path d="M5 9h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V9Z" />
           <path d="M16 10h2.5a2.5 2.5 0 0 1 0 5H16" />
-          <path d="M8 3c-.5 1 .5 1.5 0 2.5M11.5 3c-.5 1 .5 1.5 0 2.5" />
+          <path d="M6 9a5.8 1.6 0 0 0 10 0" />
         </svg>
       </div>
     </div>
