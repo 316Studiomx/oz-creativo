@@ -16,15 +16,20 @@ type Props = {
  */
 export function CoffeeCup({ pointer, reduced }: Props) {
   const group = useRef<THREE.Group>(null)
-  const handleCurve = useMemo(
+  const handleJoins = useMemo(
     () =>
-      new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-0.78, 0.33, 0),
-        new THREE.Vector3(-1.2, 0.34, 0.03),
-        new THREE.Vector3(-1.46, 0.02, 0.04),
-        new THREE.Vector3(-1.2, -0.36, 0.03),
-        new THREE.Vector3(-0.78, -0.36, 0),
-      ]),
+      ({
+        topJoin: new THREE.CatmullRomCurve3([
+          new THREE.Vector3(-0.66, 0.27, 0.03),
+          new THREE.Vector3(-0.78, 0.29, 0.1),
+          new THREE.Vector3(-0.93, 0.26, 0.16),
+        ]),
+        bottomJoin: new THREE.CatmullRomCurve3([
+          new THREE.Vector3(-0.66, -0.28, 0.03),
+          new THREE.Vector3(-0.78, -0.3, 0.1),
+          new THREE.Vector3(-0.93, -0.28, 0.16),
+        ]),
+      }),
     []
   )
 
@@ -95,9 +100,9 @@ export function CoffeeCup({ pointer, reduced }: Props) {
         />
       </mesh>
 
-      {/* C-shaped handle like the reference, with soft ceramic attachment pads. */}
-      <mesh>
-        <tubeGeometry args={[handleCurve, 56, 0.09, 18, false]} />
+      {/* C-shaped handle like the reference, built from a visible oval plus ceramic joins. */}
+      <mesh position={[-1.17, -0.01, 0.17]} scale={[0.72, 1.08, 0.92]}>
+        <torusGeometry args={[0.38, 0.095, 24, 72]} />
         <meshStandardMaterial
           color={COLORS_HEX.yellow}
           emissive={COLORS_HEX.yellowWarm}
@@ -106,12 +111,24 @@ export function CoffeeCup({ pointer, reduced }: Props) {
           metalness={0.02}
         />
       </mesh>
+      {[handleJoins.topJoin, handleJoins.bottomJoin].map((curve, index) => (
+        <mesh key={index === 0 ? 'top-handle-join' : 'bottom-handle-join'}>
+          <tubeGeometry args={[curve, 24, 0.105, 22, false]} />
+          <meshStandardMaterial
+            color={COLORS_HEX.yellowWarm}
+            emissive={COLORS_HEX.yellow}
+            emissiveIntensity={0.06}
+            roughness={0.58}
+            metalness={0.02}
+          />
+        </mesh>
+      ))}
       {[
-        [-0.73, 0.34, 0],
-        [-0.73, -0.36, 0],
-      ].map(([x, y, z]) => (
-        <mesh key={`${x}-${y}`} position={[x, y, z]} scale={[1.05, 0.8, 0.9]}>
-          <sphereGeometry args={[0.17, 24, 18]} />
+        [-0.68, 0.27, 0.03, 0.24, 0.14, 0.18],
+        [-0.68, -0.28, 0.03, 0.24, 0.14, 0.18],
+      ].map(([x, y, z, sx, sy, sz]) => (
+        <mesh key={`${x}-${y}`} position={[x, y, z]} scale={[sx, sy, sz]}>
+          <sphereGeometry args={[1, 28, 18]} />
           <meshStandardMaterial
             color={COLORS_HEX.yellowWarm}
             emissive={COLORS_HEX.yellow}
