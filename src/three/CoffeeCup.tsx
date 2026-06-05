@@ -52,34 +52,6 @@ export function CoffeeCup({ pointer, reduced }: Props) {
         />
       </mesh>
 
-      {[
-        [0.58, 0.28, 0.06],
-        [0.58, -0.28, 0.06],
-      ].map(([x, y, z]) => (
-        <group key={`${y}`}>
-          <mesh position={[x, y, z]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.062, 0.062, 0.22, 32]} />
-            <meshStandardMaterial
-              color={COLORS_HEX.yellow}
-              emissive={COLORS_HEX.yellowWarm}
-              emissiveIntensity={0.12}
-              roughness={0.42}
-              metalness={0.02}
-            />
-          </mesh>
-          <mesh position={[0.48, y, z]}>
-            <sphereGeometry args={[0.078, 32, 16]} />
-            <meshStandardMaterial
-              color={COLORS_HEX.yellow}
-              emissive={COLORS_HEX.yellowWarm}
-              emissiveIntensity={0.12}
-              roughness={0.42}
-              metalness={0.02}
-            />
-          </mesh>
-        </group>
-      ))}
-
       <mesh>
         <cylinderGeometry args={[0.55, 0.55, 1.12, 128, 1, true]} />
         <meshStandardMaterial
