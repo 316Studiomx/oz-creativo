@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useRef, useState, useEffect } from 'react'
+import { Suspense, useMemo, useRef, useEffect } from 'react'
 import { useFrame, useLoader } from '@react-three/fiber'
 import * as THREE from 'three'
 import { COLORS } from '../config/tokens'
@@ -133,7 +133,6 @@ type Props = {
 
 export function HeroPortrait({ pointer, reduced, imageUrl }: Props) {
   const group = useRef<THREE.Group>(null)
-  const shine = useRef<THREE.Mesh>(null)
 
   const placeholder = useMemo(() => (imageUrl ? null : buildPlaceholderTexture()), [imageUrl])
   useEffect(() => () => placeholder?.dispose(), [placeholder])
@@ -151,20 +150,7 @@ export function HeroPortrait({ pointer, reduced, imageUrl }: Props) {
         </mesh>
       )}
 
-      {/* Yellow shine overlay that follows the cursor across the portrait */}
-      <mesh ref={shine} position={[0, 0, 0.02]}>
-        <planeGeometry args={[WIDTH, HEIGHT]} />
-        <meshBasicMaterial
-          color={COLORS.yellow}
-          transparent
-          opacity={0.0}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-
-      <PortraitMotion group={group} shine={shine} pointer={pointer} reduced={reduced} />
+      <PortraitMotion group={group} pointer={pointer} reduced={reduced} />
     </group>
   )
 }
@@ -180,21 +166,17 @@ function PhotoPlane({ url }: { url: string }) {
   )
 }
 
-/** Parallax tilt + scroll drift + animated shine. Split out to keep hooks tidy. */
+/** Parallax tilt + scroll drift. Split out to keep hooks tidy. */
 function PortraitMotion({
   group,
-  shine,
   pointer,
   reduced,
 }: {
   group: React.RefObject<THREE.Group>
-  shine: React.RefObject<THREE.Mesh>
   pointer: React.MutableRefObject<Pointer>
   reduced: boolean
 }) {
-  const [t] = useState(() => ({ shineX: 0 }))
-
-  useFrame((state) => {
+  useFrame(() => {
     const g = group.current
     if (!g) return
     const p = scroll.progress
@@ -217,16 +199,6 @@ function PortraitMotion({
       g.rotation.y += (tx - g.rotation.y) * 0.06
       g.rotation.x += (ty - g.rotation.x) * 0.06
       g.position.x += (2.3 + pointer.current.nx * 0.15 - g.position.x) * 0.06
-
-      // Shine: a soft band that sweeps with time + cursor
-      const s = shine.current
-      if (s) {
-        t.shineX = (Math.sin(state.clock.elapsedTime * 0.6) + pointer.current.nx) * 0.5
-        const mat = s.material as THREE.MeshBasicMaterial
-        const proximity = 1 - Math.min(Math.abs(pointer.current.nx), 1)
-        mat.opacity = (0.06 + proximity * 0.1) * fade
-        s.position.x = t.shineX * WIDTH * 0.4
-      }
     }
   })
 
