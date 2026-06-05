@@ -75,6 +75,37 @@ html.lenis body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+.cursor-target-sight {
+  will-change: transform, filter, opacity;
+  transition: opacity 160ms ease, filter 160ms ease;
+}
+
+.cursor-target-pulse {
+  will-change: transform;
+}
+
+.cursor-target-pulse-ring {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.cursor-target-pulse-run .cursor-target-pulse-ring {
+  animation: cursor-target-pulse 420ms ease-out;
+}
+
+@keyframes cursor-target-pulse {
+  0% {
+    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(0.58);
+    box-shadow: 0 0 18px rgba(255, 212, 0, 0.68), 0 0 46px rgba(255, 212, 0, 0.36);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.7);
+    box-shadow: 0 0 4px rgba(255, 212, 0, 0);
+  }
+}
+
 /* Reduced motion: kill long/looping animations */
 @media (prefers-reduced-motion: reduce) {
   *,
