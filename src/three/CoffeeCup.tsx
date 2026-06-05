@@ -16,22 +16,33 @@ type Props = {
  */
 export function CoffeeCup({ pointer, reduced }: Props) {
   const group = useRef<THREE.Group>(null)
-  const handleJoins = useMemo(
-    () =>
-      ({
-        topJoin: new THREE.CatmullRomCurve3([
-          new THREE.Vector3(-0.66, 0.27, 0.03),
-          new THREE.Vector3(-0.78, 0.29, 0.1),
-          new THREE.Vector3(-0.93, 0.26, 0.16),
-        ]),
-        bottomJoin: new THREE.CatmullRomCurve3([
-          new THREE.Vector3(-0.66, -0.28, 0.03),
-          new THREE.Vector3(-0.78, -0.3, 0.1),
-          new THREE.Vector3(-0.93, -0.28, 0.16),
-        ]),
-      }),
-    []
-  )
+  const { bodyShape, handleShape, extrudeSettings } = useMemo(() => {
+    const body = new THREE.Shape()
+    body.moveTo(-0.68, 0.52)
+    body.bezierCurveTo(-0.68, 0.66, 0.68, 0.66, 0.68, 0.52)
+    body.lineTo(0.68, -0.5)
+    body.bezierCurveTo(0.68, -0.64, -0.68, -0.64, -0.68, -0.5)
+    body.lineTo(-0.68, 0.52)
+
+    const handle = new THREE.Shape()
+    handle.absellipse(0.9, 0.02, 0.43, 0.5, 0, Math.PI * 2, false)
+    const hole = new THREE.Path()
+    hole.absellipse(0.91, 0.02, 0.27, 0.35, 0, Math.PI * 2, true)
+    handle.holes.push(hole)
+
+    return {
+      bodyShape: body,
+      handleShape: handle,
+      extrudeSettings: {
+        depth: 0.18,
+        bevelEnabled: true,
+        bevelThickness: 0.035,
+        bevelSize: 0.028,
+        bevelSegments: 6,
+        curveSegments: 48,
+      },
+    }
+  }, [])
 
   useFrame((state) => {
     const g = group.current
@@ -41,103 +52,76 @@ export function CoffeeCup({ pointer, reduced }: Props) {
     const p = scroll.progress
     g.position.y = 0.55 - p * 3.4 + (reduced ? 0 : Math.sin(state.clock.elapsedTime * 0.8) * 0.06)
     g.position.x = 3.15 + Math.sin(p * Math.PI) * 0.5
-    g.rotation.y = -0.64 + Math.sin(state.clock.elapsedTime * (reduced ? 0.12 : 0.28)) * 0.1
+    g.rotation.y = 0.16 + Math.sin(state.clock.elapsedTime * (reduced ? 0.12 : 0.28)) * 0.05
 
     if (!reduced) {
-      // Gentle tilt toward the cursor (kept small so it never "spills")
-      const tx = pointer.current.nx * 0.18
-      const ty = 0.32 - pointer.current.ny * 0.14
+      // Gentle tilt toward the cursor while keeping the frontal silhouette.
+      const tx = pointer.current.nx * 0.12
+      const ty = -pointer.current.ny * 0.08
       g.rotation.z += (tx - g.rotation.z) * 0.05
       g.rotation.x += (ty - g.rotation.x) * 0.05
     } else {
-      g.rotation.x = 0.32
+      g.rotation.x = 0
       g.rotation.z = 0
     }
   })
 
   return (
-    <group ref={group} position={[3.15, 0.55, 0.5]} rotation={[0.32, -0.64, 0]} scale={0.55}>
-      {/* Matte ceramic body, slightly narrower at the base like the reference. */}
-      <mesh>
-        <cylinderGeometry args={[0.78, 0.7, 1.18, 72, 8, true]} />
+    <group ref={group} position={[3.15, 0.55, 0.5]} rotation={[0, 0.16, 0]} scale={0.58}>
+      {/* The handle sits slightly behind the body so the body masks its left side. */}
+      <mesh position={[0, 0, -0.08]}>
+        <extrudeGeometry args={[handleShape, extrudeSettings]} />
         <meshStandardMaterial
           color={COLORS_HEX.yellow}
           emissive={COLORS_HEX.yellowWarm}
           emissiveIntensity={0.08}
-          roughness={0.62}
+          roughness={0.58}
           metalness={0.02}
         />
       </mesh>
 
-      {/* Thick rounded lip and a subtle foot ring make the silhouette less flat. */}
-      <mesh position={[0, 0.61, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.72, 0.065, 20, 72]} />
-        <meshStandardMaterial
-          color={COLORS_HEX.yellowWarm}
-          emissive={COLORS_HEX.yellow}
-          emissiveIntensity={0.06}
-          roughness={0.56}
-          metalness={0.02}
-        />
-      </mesh>
-      <mesh position={[0, -0.6, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.61, 0.035, 14, 72]} />
-        <meshStandardMaterial color={COLORS_HEX.yellow} roughness={0.68} metalness={0.02} />
-      </mesh>
-
-      {/* Shaded hollow interior, kept yellow-gray instead of coffee-dark. */}
-      <mesh position={[0, 0.57, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.62, 72]} />
-        <meshStandardMaterial color={0xc8b545} roughness={0.72} metalness={0.02} />
-      </mesh>
-      <mesh position={[0, 0.5, 0]}>
-        <cylinderGeometry args={[0.62, 0.54, 0.16, 72, 1, true]} />
-        <meshStandardMaterial
-          color={0xbda923}
-          side={THREE.BackSide}
-          roughness={0.78}
-          metalness={0.02}
-        />
-      </mesh>
-
-      {/* C-shaped handle like the reference, built from a visible oval plus ceramic joins. */}
-      <mesh position={[-1.17, -0.01, 0.17]} scale={[0.72, 1.08, 0.92]}>
-        <torusGeometry args={[0.38, 0.095, 24, 72]} />
+      {/* Main 2D mug silhouette extruded into a ceramic slab. */}
+      <mesh position={[0, 0, 0]}>
+        <extrudeGeometry args={[bodyShape, extrudeSettings]} />
         <meshStandardMaterial
           color={COLORS_HEX.yellow}
           emissive={COLORS_HEX.yellowWarm}
-          emissiveIntensity={0.08}
-          roughness={0.6}
+          emissiveIntensity={0.1}
+          roughness={0.54}
           metalness={0.02}
         />
       </mesh>
-      {[handleJoins.topJoin, handleJoins.bottomJoin].map((curve, index) => (
-        <mesh key={index === 0 ? 'top-handle-join' : 'bottom-handle-join'}>
-          <tubeGeometry args={[curve, 24, 0.105, 22, false]} />
-          <meshStandardMaterial
-            color={COLORS_HEX.yellowWarm}
-            emissive={COLORS_HEX.yellow}
-            emissiveIntensity={0.06}
-            roughness={0.58}
-            metalness={0.02}
-          />
-        </mesh>
-      ))}
+
+      {/* Top opening and rim, kept subtle like the 2D reference. */}
+      <mesh position={[0, 0.54, 0.205]} scale={[1.05, 0.25, 1]}>
+        <circleGeometry args={[0.52, 72]} />
+        <meshBasicMaterial color={0x8c7700} transparent opacity={0.34} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, 0.55, 0.215]} scale={[1.05, 0.25, 1]}>
+        <torusGeometry args={[0.52, 0.035, 16, 72]} />
+        <meshStandardMaterial color={COLORS_HEX.yellowWarm} roughness={0.5} metalness={0.02} />
+      </mesh>
+
+      {/* Soft vertical highlights from the flat artwork. */}
       {[
-        [-0.68, 0.27, 0.03, 0.24, 0.14, 0.18],
-        [-0.68, -0.28, 0.03, 0.24, 0.14, 0.18],
-      ].map(([x, y, z, sx, sy, sz]) => (
-        <mesh key={`${x}-${y}`} position={[x, y, z]} scale={[sx, sy, sz]}>
-          <sphereGeometry args={[1, 28, 18]} />
-          <meshStandardMaterial
-            color={COLORS_HEX.yellowWarm}
-            emissive={COLORS_HEX.yellow}
-            emissiveIntensity={0.06}
-            roughness={0.58}
-            metalness={0.02}
+        [-0.24, 0.08, 0.18, 0.95, 0.08],
+        [0.22, 0.12, 0.12, 0.9, 0.04],
+      ].map(([x, y, opacity, height, width]) => (
+        <mesh key={`${x}-${y}`} position={[x, y, 0.23]} scale={[width, height, 1]}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial
+            color={COLORS_HEX.paper}
+            transparent
+            opacity={opacity}
+            depthWrite={false}
           />
         </mesh>
       ))}
+
+      <mesh position={[0.08, -0.68, -0.16]} scale={[1.28, 0.14, 1]}>
+        <circleGeometry args={[0.6, 48]} />
+        <meshBasicMaterial color={0x000000} transparent opacity={0.22} depthWrite={false} />
+      </mesh>
     </group>
   )
 }
