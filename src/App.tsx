@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import Lenis from 'lenis'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -7,6 +7,7 @@ import { Nav } from './components/Nav'
 import { Cursor } from './components/Cursor'
 import { Grain } from './components/Grain'
 import { HeroBackdropFallback } from './components/HeroBackdropFallback'
+import { LeadFormModal } from './components/LeadFormModal'
 import { Hero } from './sections/Hero'
 import { Stats } from './sections/Stats'
 import { About } from './sections/About'
@@ -26,6 +27,7 @@ export default function App() {
   const reduced = useReducedMotion()
   const isMobile = useIsMobile()
   const use3D = !isMobile // reduced-motion still gets a calm 3D version
+  const [leadFormOpen, setLeadFormOpen] = useState(false)
 
   useEffect(() => {
     // Smooth scroll. Reduced motion → near-instant (no easing).
@@ -57,7 +59,8 @@ export default function App() {
     <>
       <Cursor />
       <Grain />
-      <Nav />
+      <Nav onOpenForm={() => setLeadFormOpen(true)} />
+      <LeadFormModal open={leadFormOpen} onClose={() => setLeadFormOpen(false)} />
 
       {use3D ? (
         <Suspense fallback={<HeroBackdropFallback />}>
@@ -68,12 +71,12 @@ export default function App() {
       )}
 
       <main className="relative z-10">
-        <Hero />
+        <Hero onOpenForm={() => setLeadFormOpen(true)} />
         <Stats />
         <About />
-        <Services />
+        <Services onOpenForm={() => setLeadFormOpen(true)} />
         <Track />
-        <Contact />
+        <Contact onOpenForm={() => setLeadFormOpen(true)} />
       </main>
     </>
   )

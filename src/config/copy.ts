@@ -106,7 +106,6 @@ export const COPY = {
       cite: 'Colosenses 3:23',
     },
     cta: 'Agenda una llamada conmigo',
-    ctaHref: '#formulario',
   },
 
   footer: {

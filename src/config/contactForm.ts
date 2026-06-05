@@ -1,5 +1,4 @@
 export const CONTACT_FORM_ENDPOINT = '/api/contact'
-export const CONTACT_FORM_ANCHOR = '#formulario'
 
 export const ORGANIZATION_OPTIONS = [
   'Pequeña o mediana empresa',

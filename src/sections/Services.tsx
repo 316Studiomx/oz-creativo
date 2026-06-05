@@ -1,9 +1,12 @@
 import { motion } from 'framer-motion'
 import { COPY } from '../config/copy'
 import { ServiceCard } from '../components/ServiceCard'
-import { CONTACT_FORM_ANCHOR } from '../config/contactForm'
 
-export function Services() {
+type Props = {
+  onOpenForm: () => void
+}
+
+export function Services({ onOpenForm }: Props) {
   return (
     <section id="lo-que-hago" className="relative py-24 md:py-36">
       <div className="container-x">
@@ -33,7 +36,7 @@ export function Services() {
               title={s.title}
               body={s.body}
               cta={s.cta}
-              href={CONTACT_FORM_ANCHOR}
+              onContactClick={onOpenForm}
               index={i}
             />
           ))}

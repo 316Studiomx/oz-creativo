@@ -7,7 +7,7 @@ type Props = {
   title: string
   body: string
   cta: string
-  href: string
+  onContactClick: () => void
   index: number
 }
 
@@ -16,7 +16,7 @@ type Props = {
  * sweeps, and the card lifts. The spinning mark is CSS (cheap) — no extra WebGL
  * context per card.
  */
-export function ServiceCard({ n, title, body, cta, href, index }: Props) {
+export function ServiceCard({ n, title, body, cta, onContactClick, index }: Props) {
   const [hover, setHover] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -67,13 +67,14 @@ export function ServiceCard({ n, title, body, cta, href, index }: Props) {
         </div>
 
         <Magnetic strength={0.3} className="md:self-center">
-          <a
-            href={href}
+          <button
+            type="button"
+            onClick={onContactClick}
             className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-yellow/50 px-5 py-2.5 text-sm font-medium text-yellow transition-colors duration-300 hover:bg-yellow hover:text-ink"
           >
             {cta}
             <span aria-hidden>→</span>
-          </a>
+          </button>
         </Magnetic>
       </div>
     </motion.article>

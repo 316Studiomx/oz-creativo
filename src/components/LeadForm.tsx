@@ -87,7 +87,7 @@ export function LeadForm() {
     <form
       id="formulario"
       onSubmit={submit}
-      className="mx-auto mt-14 max-w-5xl border border-white/10 bg-ink/80 p-5 text-left shadow-[0_0_60px_rgba(255,212,0,0.08)] backdrop-blur md:p-8"
+      className="mx-auto max-h-[88svh] max-w-5xl overflow-y-auto border border-white/10 bg-ink/95 p-5 text-left shadow-[0_0_60px_rgba(255,212,0,0.14)] backdrop-blur md:p-8"
     >
       <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>

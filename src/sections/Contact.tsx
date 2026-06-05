@@ -2,9 +2,12 @@ import { motion } from 'framer-motion'
 import { COPY } from '../config/copy'
 import { PullQuote } from '../components/PullQuote'
 import { Magnetic } from '../components/Magnetic'
-import { LeadForm } from '../components/LeadForm'
 
-export function Contact() {
+type Props = {
+  onOpenForm: () => void
+}
+
+export function Contact({ onOpenForm }: Props) {
   return (
     <section id="hablemos" className="relative overflow-hidden py-28 md:py-40">
       {/* warm glow backdrop */}
@@ -36,16 +39,15 @@ export function Contact() {
         </div>
 
         <Magnetic strength={0.3} className="inline-block">
-          <a
-            href={COPY.contact.ctaHref}
+          <button
+            type="button"
+            onClick={onOpenForm}
             className="inline-flex items-center gap-3 rounded-full bg-yellow px-9 py-4 text-base font-semibold text-ink transition-transform hover:scale-[1.03] md:text-lg"
           >
             {COPY.contact.cta}
             <span aria-hidden>→</span>
-          </a>
+          </button>
         </Magnetic>
-
-        <LeadForm />
       </div>
 
       {/* Footer */}
