@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types tests/*.test.mts"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.7.9",
     "@react-three/drei": "^9.114.0",
     "@react-three/fiber": "^8.17.10",
     "framer-motion": "^11.11.0",
