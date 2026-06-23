@@ -7,6 +7,7 @@ declare const Netlify: {
 }
 
 type LeadPayload = {
+  servicioPrincipal?: unknown
   nombre?: unknown
   apellido?: unknown
   telefono?: unknown
@@ -14,14 +15,24 @@ type LeadPayload = {
   tipoOrganizacion?: unknown
   institucion?: unknown
   serviciosInteres?: unknown
+  formatoEvento?: unknown
+  temaInteres?: unknown
+  planViaje?: unknown
+  paqueteMentoria?: unknown
+  productoConsultoria?: unknown
   lugarFecha?: unknown
   comoTeEnteraste?: unknown
   presupuesto?: unknown
   objetivo?: unknown
+  contextoProyecto?: unknown
+  cotizacionResumen?: unknown
+  cotizacionMonto?: unknown
+  cotizacionMoneda?: unknown
   website?: unknown
 }
 
 type NormalizedLead = {
+  servicioPrincipal: string
   nombre: string
   apellido: string
   telefono: string
@@ -29,10 +40,19 @@ type NormalizedLead = {
   tipoOrganizacion: string
   institucion: string
   serviciosInteres: string[]
+  formatoEvento: string
+  temaInteres: string
+  planViaje: string
+  paqueteMentoria: string
+  productoConsultoria: string
   lugarFecha: string
   comoTeEnteraste: string
   presupuesto: string
   objetivo: string
+  contextoProyecto: string
+  cotizacionResumen: string
+  cotizacionMonto: string
+  cotizacionMoneda: string
   submittedAt: string
   sourceUrl: string
   userAgent: string
@@ -98,6 +118,7 @@ function normalizeLead(payload: LeadPayload, req: Request): NormalizedLead | { m
   }
 
   const lead = {
+    servicioPrincipal: text(payload.servicioPrincipal),
     nombre: text(payload.nombre),
     apellido: text(payload.apellido),
     telefono: text(payload.telefono),
@@ -107,16 +128,26 @@ function normalizeLead(payload: LeadPayload, req: Request): NormalizedLead | { m
     serviciosInteres: Array.isArray(payload.serviciosInteres)
       ? payload.serviciosInteres.map(text).filter(Boolean)
       : [],
+    formatoEvento: text(payload.formatoEvento),
+    temaInteres: text(payload.temaInteres),
+    planViaje: text(payload.planViaje),
+    paqueteMentoria: text(payload.paqueteMentoria),
+    productoConsultoria: text(payload.productoConsultoria),
     lugarFecha: text(payload.lugarFecha),
     comoTeEnteraste: text(payload.comoTeEnteraste),
     presupuesto: text(payload.presupuesto),
     objetivo: text(payload.objetivo),
+    contextoProyecto: text(payload.contextoProyecto),
+    cotizacionResumen: text(payload.cotizacionResumen),
+    cotizacionMonto: text(payload.cotizacionMonto),
+    cotizacionMoneda: text(payload.cotizacionMoneda),
     submittedAt: new Date().toISOString(),
     sourceUrl: req.headers.get('referer') || 'ozcreativo.com',
     userAgent: req.headers.get('user-agent') || '',
   }
 
   const required = [
+    lead.servicioPrincipal,
     lead.nombre,
     lead.apellido,
     lead.telefono,

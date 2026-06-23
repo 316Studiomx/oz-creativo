@@ -28,3 +28,17 @@ El script manda:
 - Correo interno a `oz@expocuspide.com`.
 - Correo de agradecimiento al email capturado en el formulario.
 - Boton de WhatsApp a `https://wa.me/528181199759`.
+
+## Columnas nuevas del cotizador
+
+El formulario ahora envia, ademas de los datos de contacto:
+- Servicio principal
+- Formato del evento
+- Temario de interes
+- Plan de viaje
+- Paquete de mentoria
+- Producto de consultoria
+- Cotizacion resumen
+- Monto estimado
+- Moneda
+- Contexto del proyecto

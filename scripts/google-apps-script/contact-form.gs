@@ -13,6 +13,7 @@ function doPost(e) {
     const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
     sheet.appendRow([
       lead.submittedAt,
+      lead.servicioPrincipal,
       lead.nombre,
       lead.apellido,
       lead.telefono,
@@ -20,10 +21,19 @@ function doPost(e) {
       lead.tipoOrganizacion,
       lead.institucion,
       lead.serviciosInteres.join(', '),
+      lead.formatoEvento,
+      lead.temaInteres,
+      lead.planViaje,
+      lead.paqueteMentoria,
+      lead.productoConsultoria,
       lead.lugarFecha,
       lead.comoTeEnteraste,
       lead.presupuesto,
+      lead.cotizacionResumen,
+      lead.cotizacionMonto,
+      lead.cotizacionMoneda,
       lead.objetivo,
+      lead.contextoProyecto,
       lead.sourceUrl,
       lead.userAgent,
       'Nuevo',
@@ -45,6 +55,7 @@ function doPost(e) {
 function normalizeLead_(payload) {
   const lead = {
     submittedAt: text_(payload.submittedAt) || new Date().toISOString(),
+    servicioPrincipal: text_(payload.servicioPrincipal),
     nombre: text_(payload.nombre),
     apellido: text_(payload.apellido),
     telefono: text_(payload.telefono),
@@ -54,15 +65,24 @@ function normalizeLead_(payload) {
     serviciosInteres: Array.isArray(payload.serviciosInteres)
       ? payload.serviciosInteres.map(text_).filter(Boolean)
       : [],
+    formatoEvento: text_(payload.formatoEvento),
+    temaInteres: text_(payload.temaInteres),
+    planViaje: text_(payload.planViaje),
+    paqueteMentoria: text_(payload.paqueteMentoria),
+    productoConsultoria: text_(payload.productoConsultoria),
     lugarFecha: text_(payload.lugarFecha),
     comoTeEnteraste: text_(payload.comoTeEnteraste),
     presupuesto: text_(payload.presupuesto),
     objetivo: text_(payload.objetivo),
+    contextoProyecto: text_(payload.contextoProyecto),
+    cotizacionResumen: text_(payload.cotizacionResumen),
+    cotizacionMonto: text_(payload.cotizacionMonto),
+    cotizacionMoneda: text_(payload.cotizacionMoneda),
     sourceUrl: text_(payload.sourceUrl),
     userAgent: text_(payload.userAgent),
   };
 
-  if (!lead.nombre || !lead.apellido || !lead.telefono || !lead.email || !lead.objetivo) {
+  if (!lead.servicioPrincipal || !lead.nombre || !lead.apellido || !lead.telefono || !lead.email || !lead.objetivo) {
     throw new Error('Faltan campos obligatorios.');
   }
   if (lead.serviciosInteres.length === 0) {
@@ -111,16 +131,25 @@ function sendClientEmail_(lead) {
 
 function leadTable_(lead) {
   const rows = [
+    ['Servicio principal', lead.servicioPrincipal],
     ['Nombre', `${lead.nombre} ${lead.apellido}`],
     ['Telefono', lead.telefono],
     ['Email', lead.email],
     ['Organizacion', lead.tipoOrganizacion],
     ['Institucion', lead.institucion],
     ['Servicios', lead.serviciosInteres.join(', ')],
+    ['Formato', lead.formatoEvento],
+    ['Temario', lead.temaInteres],
+    ['Plan de viaje', lead.planViaje],
+    ['Paquete de mentoria', lead.paqueteMentoria],
+    ['Producto de consultoria', lead.productoConsultoria],
     ['Lugar y fecha', lead.lugarFecha],
     ['Como se entero', lead.comoTeEnteraste],
     ['Presupuesto', lead.presupuesto],
+    ['Cotizacion', lead.cotizacionResumen],
+    ['Monto estimado', `${lead.cotizacionMonto} ${lead.cotizacionMoneda}`],
     ['Objetivo', lead.objetivo],
+    ['Contexto', lead.contextoProyecto],
   ];
 
   return `

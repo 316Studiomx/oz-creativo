@@ -1,4 +1,5 @@
 export const CONTACT_FORM_ENDPOINT = '/api/contact'
+export const EXCHANGE_RATE_ENDPOINT = '/api/exchange-rate'
 
 export const ORGANIZATION_OPTIONS = [
   'Pequeña o mediana empresa',
@@ -32,6 +33,7 @@ export const BUDGET_OPTIONS = [
 ] as const
 
 export type ContactFormPayload = {
+  servicioPrincipal: string
   nombre: string
   apellido: string
   telefono: string
@@ -39,9 +41,18 @@ export type ContactFormPayload = {
   tipoOrganizacion: string
   institucion: string
   serviciosInteres: string[]
+  formatoEvento: string
+  temaInteres: string
+  planViaje: string
+  paqueteMentoria: string
+  productoConsultoria: string
   lugarFecha: string
   comoTeEnteraste: string
   presupuesto: string
   objetivo: string
+  contextoProyecto: string
+  cotizacionResumen: string
+  cotizacionMonto: string
+  cotizacionMoneda: string
   website?: string
 }

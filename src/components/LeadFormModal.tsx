@@ -80,7 +80,7 @@ export function LeadFormModal({ open, onClose }: Props) {
         ref={dialog}
         role="dialog"
         aria-modal="true"
-        aria-label="Formulario de contacto"
+        aria-label="Cotizador de servicios"
         tabIndex={-1}
         onKeyDown={onDialogKeyDown}
         onWheel={onWheel}
