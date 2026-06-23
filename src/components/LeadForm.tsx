@@ -1,32 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { FormEvent } from 'react'
 import {
   CONTACT_FORM_ENDPOINT,
-  EXCHANGE_RATE_ENDPOINT,
   ORGANIZATION_OPTIONS,
   REFERRAL_OPTIONS,
   type ContactFormPayload,
 } from '../config/contactForm'
 import {
   CONSULTING_PRODUCTS,
-  CONSULTING_STARTS_AT_USD,
   EVENT_TOPICS,
   EVENT_TRAVEL_OPTIONS,
   MENTORING_PACKAGES,
-  calculateEventQuote,
-  formatMxn,
-  formatUsd,
-  formatUsdToMxnEstimate,
-  getMentoringPackage,
-  type EventTravelPlan,
-  type MentoringPackageId,
 } from '../config/quotes'
 
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
 type ServiceKey = 'conference' | 'workshop' | 'mentoring' | 'consulting'
 type SelectOption = string | { value: string; label: string }
-
-const CALENDAR_URL = 'https://calendar.app.google/YUtUYehnhJyt1Wsz5'
 
 const SERVICES: Array<{
   key: ServiceKey
@@ -89,37 +78,12 @@ export function LeadForm() {
   const [form, setForm] = useState<ContactFormPayload>(initialForm)
   const [state, setState] = useState<SubmitState>('idle')
   const [error, setError] = useState('')
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null)
-  const [exchangeRateDate, setExchangeRateDate] = useState('')
 
   const selectedService = form.servicioPrincipal as ServiceKey | ''
-  const quote = useMemo(() => buildQuote(selectedService, form, exchangeRate), [
-    exchangeRate,
-    form,
-    selectedService,
-  ])
 
-  const whatsappHref = useMemo(() => {
-    const text = `Hola Oz, acabo de llenar el cotizador en ozcreativo.com para ${quote.serviceLabel}. Me gustaría dar seguimiento.`
-    return `https://wa.me/528181199759?text=${encodeURIComponent(text)}`
-  }, [quote.serviceLabel])
-
-  useEffect(() => {
-    let cancelled = false
-
-    fetch(EXCHANGE_RATE_ENDPOINT)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((result) => {
-        if (cancelled || !result?.rate) return
-        setExchangeRate(result.rate)
-        setExchangeRateDate(result.rateDate || '')
-      })
-      .catch(() => undefined)
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const whatsappHref = `https://wa.me/528181199759?text=${encodeURIComponent(
+    `Hola Oz, acabo de llenar la solicitud de propuesta en ozcreativo.com para ${serviceLabel(selectedService)}. Me gustaría dar seguimiento.`,
+  )}`
 
   const update = (field: keyof ContactFormPayload, value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
@@ -164,10 +128,10 @@ export function LeadForm() {
 
     const payload: ContactFormPayload = {
       ...form,
-      presupuesto: quote.budgetLabel,
-      cotizacionResumen: quote.summary,
-      cotizacionMonto: quote.amount,
-      cotizacionMoneda: quote.currency,
+      presupuesto: '',
+      cotizacionResumen: '',
+      cotizacionMonto: '',
+      cotizacionMoneda: '',
     }
 
     try {
@@ -198,14 +162,14 @@ export function LeadForm() {
     >
       <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <span className="text-xs uppercase tracking-[0.3em] text-yellow">/ Cotizador</span>
+          <span className="text-xs uppercase tracking-[0.3em] text-yellow">/ Solicitud de propuesta</span>
           <h3 className="mt-3 font-display text-3xl font-semibold uppercase leading-none md:text-5xl">
-            Elige el servicio y recibe una ruta clara.
+            Cuéntame qué necesitas y preparo la ruta correcta.
           </h3>
         </div>
         <p className="max-w-md text-sm leading-relaxed text-muted">
-          Los montos son estimados iniciales. La cotización final puede cambiar por alcance,
-          logística, fecha, viáticos o ajustes solicitados por la organización.
+          La inversión se enviará por correo en una propuesta privada, con alcance, condiciones,
+          siguiente paso y link a la página de cotización cuando corresponda.
         </p>
       </div>
 
@@ -255,8 +219,6 @@ export function LeadForm() {
               form={form}
               service={selectedService}
               update={update}
-              exchangeRate={exchangeRate}
-              exchangeRateDate={exchangeRateDate}
             />
           )}
 
@@ -313,11 +275,8 @@ export function LeadForm() {
           </label>
         </div>
 
-        <QuotePanel
+        <ProposalPanel
           selectedService={selectedService}
-          quote={quote}
-          exchangeRate={exchangeRate}
-          exchangeRateDate={exchangeRateDate}
           whatsappHref={whatsappHref}
         />
       </div>
@@ -330,7 +289,10 @@ export function LeadForm() {
 
       {state === 'success' && (
         <div className="mt-5 border border-yellow/40 bg-yellow/10 px-4 py-4 text-sm text-paper">
-          <p>Gracias. Recibí tu información y también te llegará una copia por correo.</p>
+          <p>
+            Gracias. Recibí tu información; el siguiente paso será revisar el contexto y enviarte
+            una propuesta privada por correo.
+          </p>
           <a
             href={whatsappHref}
             target="_blank"
@@ -362,14 +324,10 @@ function ServiceQuestions({
   form,
   service,
   update,
-  exchangeRate,
-  exchangeRateDate,
 }: {
   form: ContactFormPayload
   service: ServiceKey
   update: (field: keyof ContactFormPayload, value: string) => void
-  exchangeRate: number | null
-  exchangeRateDate: string
 }) {
   if (service === 'conference' || service === 'workshop') {
     const formatOptions =
@@ -434,8 +392,8 @@ function ServiceQuestions({
           Sesión de Estrategia Magnífica 1:1
         </h4>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          Pago total por adelantado. Después de confirmar el pago se libera el calendario.
-          En paquetes, se agenda la primera sesión y las siguientes se coordinan con el equipo.
+          Selecciona el formato que te interesa. Después de revisar tu solicitud recibirás por
+          correo la propuesta privada con forma de pago y el siguiente paso para agendar.
         </p>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           {MENTORING_PACKAGES.map((item) => {
@@ -452,25 +410,11 @@ function ServiceQuestions({
                 }`}
               >
                 <span className="block text-sm text-muted">{item.label}</span>
-                <span className="mt-2 block font-display text-2xl font-semibold text-yellow">
-                  {formatUsd(item.priceUsd)} USD
-                </span>
-                <span className="mt-1 block text-xs text-muted">
-                  {exchangeRate
-                    ? formatUsdToMxnEstimate(item.priceUsd, exchangeRate)
-                    : 'MXN al tipo de cambio del día'}
-                </span>
                 <span className="mt-3 block text-xs leading-relaxed text-muted">{item.note}</span>
               </button>
             )
           })}
         </div>
-        {exchangeRate && (
-          <p className="mt-3 text-xs text-muted">
-            Tipo de cambio Banxico usado para referencia: {exchangeRate.toFixed(4)}
-            {exchangeRateDate ? `, fecha ${exchangeRateDate}.` : '.'}
-          </p>
-        )}
         <TextField
           label="Principal reto para la mentoría"
           name="contextoProyecto"
@@ -489,9 +433,8 @@ function ServiceQuestions({
         Consultoría estratégica
       </h4>
       <p className="mt-2 text-sm leading-relaxed text-muted">
-        Nuestros servicios de consultoría comienzan en {formatUsd(CONSULTING_STARTS_AT_USD)}.
-        El presupuesto final depende del alcance, diagnóstico y ejecución; se define después
-        de una reunión de descubrimiento de máximo 30 minutos.
+        La consultoría requiere diagnóstico. Con tus respuestas se prepara una ruta inicial y,
+        si hay fit, se agenda una reunión de descubrimiento de máximo 30 minutos.
       </p>
       <div className="mt-5 grid gap-5 md:grid-cols-2">
         <SelectField
@@ -514,62 +457,28 @@ function ServiceQuestions({
   )
 }
 
-function QuotePanel({
+function ProposalPanel({
   selectedService,
-  quote,
-  exchangeRate,
-  exchangeRateDate,
   whatsappHref,
 }: {
   selectedService: ServiceKey | ''
-  quote: QuoteSummary
-  exchangeRate: number | null
-  exchangeRateDate: string
   whatsappHref: string
 }) {
+  const selected = proposalSummary(selectedService)
+
   return (
     <aside className="border border-yellow/30 bg-yellow/10 p-5 text-paper lg:sticky lg:top-6 lg:self-start">
-      <span className="text-xs uppercase tracking-[0.25em] text-yellow">Estimado</span>
+      <span className="text-xs uppercase tracking-[0.25em] text-yellow">Proceso privado</span>
       <h4 className="mt-3 font-display text-2xl font-semibold uppercase leading-tight">
-        {quote.title}
+        {selected.title}
       </h4>
-      <p className="mt-4 font-display text-4xl font-semibold text-yellow">{quote.amount}</p>
-      <p className="mt-3 text-sm leading-relaxed text-paper/85">{quote.summary}</p>
+      <p className="mt-4 text-sm leading-relaxed text-paper/85">{selected.summary}</p>
 
       <div className="mt-5 space-y-3 text-sm text-muted">
-        {quote.details.map((detail) => (
+        {selected.details.map((detail) => (
           <p key={detail}>{detail}</p>
         ))}
       </div>
-
-      {selectedService === 'mentoring' && (
-        <div className="mt-5 border-t border-white/10 pt-4 text-sm text-paper/85">
-          <p className="font-semibold text-paper">Métodos de pago</p>
-          <p className="mt-2 text-muted">
-            Pago total por Stripe, PayPal o transferencia. El equivalente en MXN se calcula
-            con Banxico para transferencia bancaria.
-          </p>
-          <a
-            href={CALENDAR_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex rounded-full border border-yellow/60 px-4 py-2 text-sm font-semibold text-yellow"
-          >
-            Agendar después del pago
-          </a>
-        </div>
-      )}
-
-      {selectedService === 'consulting' && (
-        <a
-          href={CALENDAR_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-5 inline-flex rounded-full bg-yellow px-5 py-2.5 text-sm font-semibold text-ink"
-        >
-          Agendar descubrimiento
-        </a>
-      )}
 
       <a
         href={whatsappHref}
@@ -579,108 +488,73 @@ function QuotePanel({
       >
         WhatsApp
       </a>
-
-      {exchangeRate && selectedService === 'mentoring' && (
-        <p className="mt-4 text-xs text-muted">
-          Banxico FIX: {exchangeRate.toFixed(4)}
-          {exchangeRateDate ? ` (${exchangeRateDate})` : ''}.
-        </p>
-      )}
     </aside>
   )
 }
 
-type QuoteSummary = {
+type ProposalSummary = {
   title: string
-  amount: string
-  currency: string
-  budgetLabel: string
-  serviceLabel: string
   summary: string
   details: string[]
 }
 
-function buildQuote(
-  service: ServiceKey | '',
-  form: ContactFormPayload,
-  exchangeRate: number | null,
-): QuoteSummary {
+function proposalSummary(service: ServiceKey | ''): ProposalSummary {
   if (service === 'conference' || service === 'workshop') {
-    const plan = form.planViaje as EventTravelPlan
-    const eventQuote = calculateEventQuote(plan)
-    const serviceLabel = service === 'conference' ? 'conferencia / masterclass' : 'workshop'
-
     return {
       title: service === 'conference' ? 'Conferencia / masterclass' : 'Workshop para equipos',
-      amount: formatMxn(eventQuote.totalMxn),
-      currency: 'MXN',
-      budgetLabel: formatMxn(eventQuote.totalMxn),
-      serviceLabel,
       summary:
-        'Precio estimado sujeto a disponibilidad, sede, fecha, alcance y validación logística.',
+        'Con estos datos se revisa disponibilidad, logística, temario y alcance antes de enviar la propuesta.',
       details: [
-        `Base: ${formatMxn(eventQuote.baseMxn)}.`,
-        `Logística seleccionada: ${eventQuote.travelLabel}.`,
-        eventQuote.travelMxn > 0
-          ? `Días extra de viaje: ${formatMxn(eventQuote.travelMxn)}.`
-          : 'Sin días extra de viaje contemplados.',
-        'Viáticos no incluidos para dos personas: Oz y un acompañante.',
-        'No se viaja ni se agenda conferencia/workshop en domingo.',
+        'Recibirás un correo con overview y botón a la página privada de propuesta.',
+        'La página de propuesta incluirá alcance, condiciones, logística y forma de pago.',
+        'Después de aceptar y pagar, se continúa con contrato y coordinación del evento.',
       ],
     }
   }
 
   if (service === 'mentoring') {
-    const selectedPackage = getMentoringPackage(form.paqueteMentoria as MentoringPackageId)
-    const mxnEstimate = exchangeRate
-      ? formatUsdToMxnEstimate(selectedPackage.priceUsd, exchangeRate)
-      : 'MXN al tipo de cambio del día'
-
     return {
       title: 'Sesión de Estrategia Magnífica 1:1',
-      amount: `${formatUsd(selectedPackage.priceUsd)} USD`,
-      currency: 'USD',
-      budgetLabel: `${formatUsd(selectedPackage.priceUsd)} USD / ${mxnEstimate}`,
-      serviceLabel: 'mentoría 1:1',
-      summary: `${selectedPackage.label}. Pago total por adelantado; calendario disponible después de confirmar pago.`,
+      summary:
+        'La propuesta se envía por correo con el paquete recomendado, link de pago y pasos para liberar agenda.',
       details: [
-        `Equivalente de referencia: ${mxnEstimate}.`,
-        selectedPackage.note,
-        'La primera sesión aporta claridad y diagnóstico; los paquetes permiten acompañamiento y ejecución.',
+        'El usuario primero revisa la propuesta privada.',
+        'La agenda se libera después del pago.',
+        'Los paquetes permiten acompañamiento y seguimiento posterior a la primera sesión.',
       ],
     }
   }
 
   if (service === 'consulting') {
-    const product = form.productoConsultoria || CONSULTING_PRODUCTS[0]
     return {
-      title: product,
-      amount: `Desde ${formatUsd(CONSULTING_STARTS_AT_USD)} USD`,
-      currency: 'USD',
-      budgetLabel: `Desde ${formatUsd(CONSULTING_STARTS_AT_USD)} USD`,
-      serviceLabel: 'consultoría',
+      title: 'Consultoría estratégica',
       summary:
-        'La inversión final se define en una reunión de descubrimiento de máximo 30 minutos.',
+        'Primero se valida fit, diagnóstico y alcance; después se prepara la propuesta formal.',
       details: [
-        'Incluye análisis, diagnóstico, plan de acción, ejecución, entregables y capacitación según alcance.',
-        'No se publica rango cerrado porque depende de objetivos, estructura y velocidad de implementación.',
+        'Fábrica de Clientes y Agencia In-House requieren una revisión más profunda.',
+        'Si hay fit, se agenda una reunión de descubrimiento.',
+        'La página privada de propuesta incluirá entregables, fases, inversión y condiciones.',
       ],
     }
   }
 
   return {
     title: 'Selecciona un servicio',
-    amount: 'Estimado inicial',
-    currency: '',
-    budgetLabel: '',
-    serviceLabel: 'un servicio de Oz Creativo',
-    summary: 'Primero elige el servicio que te interesa para ver la ruta y el precio estimado.',
+    summary: 'Primero elige el servicio que te interesa para preparar una ruta de propuesta.',
     details: [
-      'Conferencias/workshops se calculan en MXN.',
-      'Mentorías se muestran en USD con referencia MXN diaria.',
-      'Consultoría requiere reunión de descubrimiento.',
+      'La web no publica precios ni rangos finales.',
+      'La propuesta se envía por correo con un link privado.',
+      'El pago, contrato y agenda viven después de aceptar la propuesta.',
     ],
   }
+}
+
+function serviceLabel(service: ServiceKey | '') {
+  if (service === 'conference') return 'conferencia / masterclass'
+  if (service === 'workshop') return 'workshop'
+  if (service === 'mentoring') return 'mentoría 1:1'
+  if (service === 'consulting') return 'consultoría'
+  return 'un servicio de Oz Creativo'
 }
 
 function TextField({

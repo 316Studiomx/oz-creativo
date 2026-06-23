@@ -145,9 +145,6 @@ function leadTable_(lead) {
     ['Producto de consultoria', lead.productoConsultoria],
     ['Lugar y fecha', lead.lugarFecha],
     ['Como se entero', lead.comoTeEnteraste],
-    ['Presupuesto', lead.presupuesto],
-    ['Cotizacion', lead.cotizacionResumen],
-    ['Monto estimado', `${lead.cotizacionMonto} ${lead.cotizacionMoneda}`],
     ['Objetivo', lead.objetivo],
     ['Contexto', lead.contextoProyecto],
   ];

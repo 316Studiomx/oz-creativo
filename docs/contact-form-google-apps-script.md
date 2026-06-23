@@ -29,7 +29,7 @@ El script manda:
 - Correo de agradecimiento al email capturado en el formulario.
 - Boton de WhatsApp a `https://wa.me/528181199759`.
 
-## Columnas nuevas del cotizador
+## Columnas nuevas de solicitud
 
 El formulario ahora envia, ademas de los datos de contacto:
 - Servicio principal
@@ -38,7 +38,6 @@ El formulario ahora envia, ademas de los datos de contacto:
 - Plan de viaje
 - Paquete de mentoria
 - Producto de consultoria
-- Cotizacion resumen
-- Monto estimado
-- Moneda
 - Contexto del proyecto
+
+La web publica solo captura la solicitud. La inversion, alcance, forma de pago y contrato se envian despues en una propuesta privada con folio.

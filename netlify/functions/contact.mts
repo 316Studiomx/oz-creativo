@@ -155,7 +155,6 @@ function normalizeLead(payload: LeadPayload, req: Request): NormalizedLead | { m
     lead.tipoOrganizacion,
     lead.institucion,
     lead.comoTeEnteraste,
-    lead.presupuesto,
     lead.objetivo,
   ]
 

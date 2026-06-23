@@ -16,7 +16,7 @@ export const COPY = {
       { label: 'Trayectoria', href: '#trayectoria' },
       { label: 'Hablemos', href: '#hablemos' },
     ],
-    cta: 'Cotizar mi proyecto',
+    cta: 'Solicitar propuesta',
   },
 
   hero: {
@@ -24,7 +24,7 @@ export const COPY = {
     title: 'Convierto ideas en marcas, y marcas en negocios que venden.',
     subtitle:
       'Soy Oz Creativo. Más de 12 años ayudando a empresas y marcas personales a comunicar mejor, vender más y construir algo que trascienda. Sin humo. Con estrategia.',
-    ctaPrimary: 'Cotizar mi proyecto',
+    ctaPrimary: 'Solicitar propuesta',
     ctaSecondary: 'Conoce cómo trabajo',
     // Easter egg microcopy shown when hovering the yellow glasses on the portrait
     glassesEasterEgg: 'Veo oportunidades donde otros ven ruido. 👓',
@@ -56,25 +56,25 @@ export const COPY = {
         n: '01',
         title: 'Conferencias y Masterclasses',
         body: 'Subo a un escenario a mover a la gente, no a aburrirla. Marketing, ventas, emprendimiento, innovación, creatividad y desarrollo personal.',
-        cta: 'Cotizar este servicio',
+        cta: 'Solicitar propuesta',
       },
       {
         n: '02',
         title: 'Workshops para equipos',
         body: 'Ventas Magníficas y Marketing Magnífico: tu equipo deja de improvisar y empieza a operar por sistema.',
-        cta: 'Cotizar este servicio',
+        cta: 'Solicitar propuesta',
       },
       {
         n: '03',
         title: 'Mentorías 1 a 1',
         body: 'Un sparring que te dice las cosas como son. Tu marca, tu mensaje, tu oferta y tu estrategia de crecimiento, con foco en lo que mueve la aguja.',
-        cta: 'Cotizar este servicio',
+        cta: 'Solicitar propuesta',
       },
       {
         n: '04',
         title: 'Consultoría',
         body: 'Tu Fábrica de Ventas (sistematizo tu proceso comercial) y Tu Agencia de Marketing In House (construyo o profesionalizo tu motor de marketing interno con la experiencia de 316 Studio).',
-        cta: 'Cotizar este servicio',
+        cta: 'Solicitar propuesta',
       },
     ],
   },
@@ -130,7 +130,7 @@ export const COPY = {
       text: 'Y todo lo que hagan, háganlo de corazón.',
       cite: 'Colosenses 3:23',
     },
-    cta: 'Abrir cotizador',
+    cta: 'Solicitar propuesta',
   },
 
   footer: {
