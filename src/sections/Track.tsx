@@ -29,36 +29,49 @@ export function Track() {
           ))}
         </div>
 
-        {/* Editable logo grid (placeholder) */}
-        <div className="mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 md:grid-cols-3 lg:grid-cols-6">
-          {COPY.track.logos.map((logo) => (
-            <div
-              key={logo}
-              className="flex aspect-[3/2] items-center justify-center bg-ink px-4 text-center text-sm text-muted transition-colors hover:text-yellow"
-            >
-              {logo}
-            </div>
-          ))}
-        </div>
+        <div className="mt-16 grid gap-4 md:grid-cols-6">
+          {COPY.track.proofItems.map((item, i) => {
+            const featured = i < 2
 
-        {/* Testimonials (placeholder) */}
-        <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {COPY.track.testimonials.map((t, i) => (
-            <motion.figure
-              key={i}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-10% 0px' }}
-              transition={{ duration: 0.6, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="rounded-2xl border border-white/10 p-6 transition-colors hover:border-yellow/40"
-            >
-              <div className="mb-4 text-2xl text-yellow">✳</div>
-              <blockquote className="text-paper/90">“{t.quote}”</blockquote>
-              <figcaption className="mt-5 text-sm text-muted">
-                <span className="text-paper">{t.name}</span> · {t.role}, {t.company}
-              </figcaption>
-            </motion.figure>
-          ))}
+            return (
+              <motion.figure
+                key={item.src}
+                initial={{ opacity: 0, y: 28 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-10% 0px' }}
+                transition={{ duration: 0.6, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                className={`group overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] ${
+                  featured ? 'md:col-span-3' : 'md:col-span-2'
+                }`}
+              >
+                <div className={`relative ${featured ? 'aspect-[16/10]' : 'aspect-[4/3]'}`}>
+                  <img
+                    src={item.src}
+                    alt={item.alt}
+                    loading="lazy"
+                    decoding="async"
+                    sizes={
+                      featured
+                        ? '(min-width: 768px) 50vw, 100vw'
+                        : '(min-width: 768px) 33vw, 100vw'
+                    }
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-ink/82 px-4 py-3 backdrop-blur-sm">
+                    <p className="text-xs uppercase tracking-[0.22em] text-yellow">
+                      {String(i + 1).padStart(2, '0')}
+                    </p>
+                    <h3 className="mt-1 font-display text-xl font-semibold uppercase leading-tight text-paper">
+                      {item.label}
+                    </h3>
+                  </div>
+                </div>
+                <figcaption className="min-h-20 border-t border-white/10 px-4 py-4 text-sm leading-relaxed text-muted">
+                  {item.caption}
+                </figcaption>
+              </motion.figure>
+            )
+          })}
         </div>
       </div>
     </section>

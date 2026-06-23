@@ -89,12 +89,37 @@ export const COPY = {
       'ThePowerMBA',
       'Harvard (Emprendimiento)',
     ],
-    // Editable placeholders — replace with real logos/testimonios.
-    logos: ['316 Studio', 'Cúspide Mx', 'Logo 03', 'Logo 04', 'Logo 05', 'Logo 06'],
-    testimonials: [
-      { name: 'Nombre Apellido', role: 'Cargo', company: 'Empresa', quote: 'Resultado concreto que logramos trabajando juntos. [placeholder editable]' },
-      { name: 'Nombre Apellido', role: 'Cargo', company: 'Empresa', quote: 'Otro testimonio con un resultado medible. [placeholder editable]' },
-      { name: 'Nombre Apellido', role: 'Cargo', company: 'Empresa', quote: 'Un tercer testimonio que refuerce la autoridad. [placeholder editable]' },
+    proofItems: [
+      {
+        label: '316 Studio',
+        caption: 'Equipo creativo, operativo y estratégico detrás de más de 12 años construyendo marcas.',
+        src: '/assets/track/316-studio-equipo.jpg',
+        alt: 'Oz Creativo junto al equipo de 316 Studio frente al muro amarillo de la agencia.',
+      },
+      {
+        label: 'Producción en vivo',
+        caption: 'Dirección y coordinación de experiencias empresariales en escenarios reales.',
+        src: '/assets/track/produccion-evento-iies.jpg',
+        alt: 'Producción de evento con iluminación azul y morada mientras el equipo coordina en sala.',
+      },
+      {
+        label: 'Cúspide Mx',
+        caption: 'Eventos empresariales con audiencias masivas y conferencistas de alto impacto.',
+        src: '/assets/track/cuspide-marco-antonio-regil.jpg',
+        alt: 'Auditorio lleno durante una conferencia de Marco Antonio Regil en Cúspide Mx.',
+      },
+      {
+        label: 'Formación',
+        caption: 'Aprendizaje constante en negocio, liderazgo y emprendimiento.',
+        src: '/assets/track/harvard-oz.jpg',
+        alt: 'Oz Creativo sonriendo con sudadera de Harvard frente a una pared de madera.',
+      },
+      {
+        label: 'Hazlo Magnífico',
+        caption: 'Libro y metodología para emprender con visión, disciplina y grandeza.',
+        src: '/assets/track/hazlo-magnifico-libro.jpg',
+        alt: 'Libro amarillo Hazlo Magnífico de Oz Creativo sobre una mesa de madera.',
+      },
     ],
   },
 
