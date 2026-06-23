@@ -453,7 +453,7 @@ function ServiceQuestions({
               >
                 <span className="block text-sm text-muted">{item.label}</span>
                 <span className="mt-2 block font-display text-2xl font-semibold text-yellow">
-                  {formatUsd(item.priceUsd)}
+                  {formatUsd(item.priceUsd)} USD
                 </span>
                 <span className="mt-1 block text-xs text-muted">
                   {exchangeRate
@@ -555,7 +555,7 @@ function QuotePanel({
             rel="noreferrer"
             className="mt-3 inline-flex rounded-full border border-yellow/60 px-4 py-2 text-sm font-semibold text-yellow"
           >
-            Calendario tras pago
+            Agendar después del pago
           </a>
         </div>
       )}
