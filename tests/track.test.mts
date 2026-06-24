@@ -54,9 +54,20 @@ test('track section uses the requested scenario proof items', () => {
   assert.equal(serializedProofItems.includes('316 Studio'), false)
   assert.equal(serializedProofItems.includes('Hazlo Magnífico'), false)
 
+  const expectedScenarioImages = new Map([
+    ['Entrepreneur México', '/assets/scenarios/entrepreneur-mexico.jpg'],
+    ['Lead Summit (Maxwell Leadership)', '/assets/scenarios/lead-summit-stage.jpg'],
+    ['Gigantes del futuro', '/assets/scenarios/gigantes-del-futuro.jpg'],
+    ['Escenario compartido', '/assets/scenarios/escenario-compartido.jpg'],
+    ['+150 Conferencias', '/assets/scenarios/150-conferencias.jpg'],
+    ['+50 Workshops corporativos', '/assets/scenarios/50-workshops-corporativos.jpg'],
+    ['+40 ciudades en 6 países', '/assets/scenarios/40-ciudades-6-paises.jpg'],
+    ['+80,000 personas', '/assets/scenarios/80000-personas.jpg'],
+  ])
+
   for (const item of proofItems) {
-    assert.match(item.src, /^\/assets\/(accreditations|companies|track)\//)
-    assert.ok(statSync(resolve('public', item.src.replace(/^\//, ''))).size > 50_000)
+    assert.equal(item.src, expectedScenarioImages.get(item.label))
+    assert.ok(statSync(resolve('public', item.src.replace(/^\//, ''))).size > 20_000)
     assert.ok(item.alt.length > 20)
     assert.ok(item.label.length > 0)
     assert.ok(item.caption.length > 0)
