@@ -105,6 +105,7 @@ function sendInternalEmail_(lead) {
   MailApp.sendEmail({
     to: OWNER_EMAIL,
     subject: `Nueva solicitud: ${lead.nombre} ${lead.apellido} - ${lead.proposalServiceTitle || lead.servicioPrincipal}`,
+    body: internalPlainText_(lead),
     htmlBody: emailShell_(
       `Nuevo formulario recibido de ${lead.nombre} ${lead.apellido}.`,
       `
@@ -142,12 +143,12 @@ function sendInternalEmail_(lead) {
 }
 
 function sendClientEmail_(lead) {
+  const folio = lead.folio || 'OZ';
   MailApp.sendEmail({
     to: lead.email,
-    subject: 'Tu propuesta privada está lista - Oz Creativo',
-    htmlBody: `
-      ${clientProposalTemplate_(lead)}
-    `,
+    subject: `Tu propuesta privada está lista - ${folio}`,
+    body: clientPlainText_(lead),
+    htmlBody: clientProposalTemplate_(lead),
   });
 }
 
@@ -208,6 +209,37 @@ function clientProposalTemplate_(lead) {
       </tr>
     `,
   );
+}
+
+function internalPlainText_(lead) {
+  return [
+    `Nueva solicitud: ${lead.nombre} ${lead.apellido}`,
+    `Folio: ${lead.folio || 'Sin folio'}`,
+    `Servicio: ${lead.proposalServiceTitle || lead.servicioPrincipal}`,
+    `Inversion: ${lead.proposalInvestment || 'Ver propuesta privada'}`,
+    `Institucion: ${lead.institucion}`,
+    `Email: ${lead.email}`,
+    `Telefono: ${lead.telefono}`,
+    `Propuesta: ${lead.proposalUrl || 'Sin URL'}`,
+    `WhatsApp: ${WHATSAPP_URL}`,
+  ].join('\n');
+}
+
+function clientPlainText_(lead) {
+  return [
+    `Hola, ${lead.nombre}.`,
+    '',
+    'Tu propuesta privada de Oz Creativo ya está lista.',
+    `Folio: ${lead.folio || 'OZ'}`,
+    `Servicio: ${lead.proposalServiceTitle || lead.servicioPrincipal}`,
+    `Inversion: ${lead.proposalInvestment || 'Ver detalle en propuesta privada'}`,
+    `Vigencia: ${lead.proposalValidUntil ? formatDate_(lead.proposalValidUntil) : 'Vigencia indicada en la propuesta'}`,
+    '',
+    `Ver propuesta privada: ${lead.proposalUrl || WHATSAPP_URL}`,
+    `WhatsApp: ${WHATSAPP_URL}`,
+    '',
+    'Oz Creativo',
+  ].join('\n');
 }
 
 function leadTable_(lead) {
