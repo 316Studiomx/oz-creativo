@@ -53,7 +53,8 @@ export function Contact({ onOpenForm }: Props) {
       {/* Footer */}
       <footer className="container-x relative z-10 mt-28 flex flex-col items-center justify-between gap-6 border-t border-white/10 pt-10 text-sm text-muted md:flex-row">
         <div className="flex items-center gap-2 font-display font-bold text-paper">
-          <span className="text-yellow">{COPY.brand.star}</span> {COPY.footer.domain}
+          <img src={COPY.brand.logo} alt="" className="h-6 w-6 rounded-full object-cover" aria-hidden />
+          {COPY.footer.domain}
         </div>
         <div className="flex gap-6">
           {COPY.footer.socials.map((s) => (

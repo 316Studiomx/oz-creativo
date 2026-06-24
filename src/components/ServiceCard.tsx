@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Magnetic } from './Magnetic'
+import { COPY } from '../config/copy'
 
 type Props = {
   n: string
@@ -12,7 +13,7 @@ type Props = {
 }
 
 /**
- * Numbered service card (01–04). On hover: a yellow ✳ accent spins, a glow
+ * Numbered service card (01–04). On hover: the Oz mark spins, a glow
  * sweeps, and the card lifts. The spinning mark is CSS (cheap) — no extra WebGL
  * context per card.
  */
@@ -42,21 +43,21 @@ export function ServiceCard({ n, title, body, cta, onContactClick, index }: Prop
       />
 
       <div className="relative z-10 grid grid-cols-1 gap-6 md:grid-cols-[auto_1fr_auto] md:items-start md:gap-10">
-        {/* Number + spinning star accent */}
+        {/* Number + spinning brand accent */}
         <div className="flex items-center gap-4">
           <span className="font-display text-3xl font-bold text-muted transition-colors duration-500 group-hover:text-yellow md:text-5xl">
             {n}
           </span>
-          <span
-            className="select-none text-2xl text-yellow transition-transform duration-700 will-change-transform md:text-3xl"
+          <img
+            src={COPY.brand.logo}
+            alt=""
+            className="h-7 w-7 rounded-full object-cover transition-transform duration-700 will-change-transform md:h-9 md:w-9"
             style={{
               transform: hover ? 'rotate(180deg) scale(1.15)' : 'rotate(0deg) scale(1)',
               filter: 'drop-shadow(0 0 10px rgba(255,212,0,0.5))',
             }}
             aria-hidden
-          >
-            ✳
-          </span>
+          />
         </div>
 
         <div className="max-w-2xl">

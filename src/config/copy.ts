@@ -4,7 +4,7 @@
 export const COPY = {
   brand: {
     name: 'OZ CREATIVO',
-    star: '✳',
+    logo: '/assets/brand/oz-logo.png',
     domain: 'OZCREATIVO.COM',
   },
 
@@ -137,8 +137,8 @@ export const COPY = {
       {
         label: 'Escenario compartido',
         caption: 'Escenarios junto a referentes como Marco Antonio Regil, Marcus Dantus y John Maxwell.',
-        src: '/assets/scenarios/escenario-compartido.jpg',
-        alt: 'Collage de Oz Creativo junto a conferencistas y referentes empresariales.',
+        src: '/assets/scenarios/escenario-compartido-selfie.jpg',
+        alt: 'Selfie de Oz Creativo con conferencistas y audiencia al fondo en un evento empresarial.',
         href: '#hablemos',
       },
       {
@@ -202,8 +202,8 @@ export const COPY = {
       {
         label: 'Forbes 2026',
         caption: 'Reconocido por Forbes como figura clave del marketing en 2026.',
-        src: '/assets/track/cuspide-marco-antonio-regil.jpg',
-        alt: 'Auditorio de alto impacto como referencia visual de reconocimiento público.',
+        src: '/assets/accreditations/forbes-2026.jpg',
+        alt: 'Publicación visual de Forbes sobre Oz Creativo y su trayectoria.',
         href: '#hablemos',
       },
       {

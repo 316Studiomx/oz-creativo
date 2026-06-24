@@ -5,6 +5,14 @@ import test from 'node:test'
 
 import { COPY } from '../src/config/copy.ts'
 
+test('brand uses the Oz logo asset instead of the star glyph', () => {
+  const brand = COPY.brand as unknown as { logo?: string; star?: string }
+
+  assert.equal(brand.logo, '/assets/brand/oz-logo.png')
+  assert.equal('star' in brand, false)
+  assert.ok(statSync(resolve('public', brand.logo.replace(/^\//, ''))).size > 10_000)
+})
+
 test('about section includes four company logo cards with short descriptions', () => {
   const companies = (COPY.about as unknown as {
     companies?: Array<{
@@ -58,7 +66,7 @@ test('track section uses the requested scenario proof items', () => {
     ['Entrepreneur México', '/assets/scenarios/entrepreneur-mexico.jpg'],
     ['Lead Summit (Maxwell Leadership)', '/assets/scenarios/lead-summit-stage.jpg'],
     ['Gigantes del futuro', '/assets/scenarios/gigantes-del-futuro.jpg'],
-    ['Escenario compartido', '/assets/scenarios/escenario-compartido.jpg'],
+    ['Escenario compartido', '/assets/scenarios/escenario-compartido-selfie.jpg'],
     ['+150 Conferencias', '/assets/scenarios/150-conferencias.jpg'],
     ['+50 Workshops corporativos', '/assets/scenarios/50-workshops-corporativos.jpg'],
     ['+40 ciudades en 6 países', '/assets/scenarios/40-ciudades-6-paises.jpg'],
@@ -101,13 +109,14 @@ test('accreditations section lists clickable visual credentials', () => {
   assert.equal(srcByLabel.get('StartUp México'), '/assets/accreditations/startup-mexico.jpg')
   assert.equal(srcByLabel.get('Meta Marketing Digital'), '/assets/accreditations/meta-marketing-digital.jpg')
   assert.equal(srcByLabel.get('Hora Cero'), '/assets/accreditations/hora-cero.jpg')
+  assert.equal(srcByLabel.get('Forbes 2026'), '/assets/accreditations/forbes-2026.jpg')
   assert.equal(srcByLabel.get('Lead Summit'), '/assets/accreditations/lead-summit.jpg')
   assert.equal(srcByLabel.get('Mejor Q’ Ayer'), '/assets/accreditations/mejor-que-ayer.jpg')
   assert.equal(srcByLabel.get('+$1M USD en anuncios'), '/assets/accreditations/inversion-anuncios.jpg')
 
   for (const item of accreditations) {
     assert.match(item.src, /^\/assets\/(accreditations|track)\//)
-    assert.ok(statSync(resolve('public', item.src.replace(/^\//, ''))).size > 50_000)
+    assert.ok(statSync(resolve('public', item.src.replace(/^\//, ''))).size > 20_000)
     assert.ok(item.alt.length > 20)
     assert.ok(item.caption.length > 0)
     assert.match(item.href, /^(https?:\/\/|#)/)

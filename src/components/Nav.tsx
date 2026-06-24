@@ -25,7 +25,7 @@ export function Nav({ onOpenForm }: Props) {
     >
       <nav className="container-x flex items-center justify-between">
         <a href="#inicio" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
-          <span className="text-yellow">{COPY.brand.star}</span>
+          <img src={COPY.brand.logo} alt="" className="h-7 w-7 rounded-full object-cover" aria-hidden />
           <span>{COPY.brand.name}</span>
         </a>
 
