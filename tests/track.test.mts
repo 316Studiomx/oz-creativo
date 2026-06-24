@@ -7,7 +7,13 @@ import { COPY } from '../src/config/copy.ts'
 
 test('about section includes four company logo cards with short descriptions', () => {
   const companies = (COPY.about as unknown as {
-    companies?: Array<{ name: string; description: string; href: string }>
+    companies?: Array<{
+      name: string
+      description: string
+      href: string
+      src: string
+      alt: string
+    }>
   }).companies
 
   assert.ok(Array.isArray(companies))
@@ -18,6 +24,9 @@ test('about section includes four company logo cards with short descriptions', (
 
   for (const company of companies) {
     assert.match(company.href, /^(https?:\/\/|#)/)
+    assert.match(company.src, /^\/assets\/(companies|track)\//)
+    assert.ok(statSync(resolve('public', company.src.replace(/^\//, ''))).size > 50_000)
+    assert.ok(company.alt.length > 20)
     assert.ok(company.description.length > 0)
     assert.ok(company.description.split(/\s+/).length <= 20)
   }

@@ -32,7 +32,7 @@ export function About() {
           ))}
         </div>
 
-        <div className="mt-12 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="mt-12 grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
           {COPY.about.companies.map((company, i) => (
             <motion.a
               key={company.name}
@@ -43,10 +43,28 @@ export function About() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-10% 0px' }}
               transition={{ duration: 0.5, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
-              className="group min-h-[136px] border border-white/10 bg-white/[0.03] p-4 transition duration-300 hover:border-yellow/70 hover:bg-yellow/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow md:min-h-[150px]"
+              className="group min-w-0 overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] transition duration-300 hover:border-yellow/70 hover:bg-yellow/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow"
             >
-              <CompanyLogo name={company.name} />
-              <p className="mt-4 text-xs leading-relaxed text-muted transition duration-300 group-hover:text-paper/90 md:text-sm">
+              <div className="relative aspect-square overflow-hidden md:aspect-[4/5]">
+                <img
+                  src={company.src}
+                  alt={company.alt}
+                  loading="lazy"
+                  decoding="async"
+                  sizes="(min-width: 1024px) 25vw, 50vw"
+                  className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05] group-hover:saturate-125"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/35 to-transparent opacity-85 transition duration-300 group-hover:opacity-70" />
+                <div className="absolute inset-x-0 bottom-0 px-3 py-3 md:px-4">
+                  <p className="text-[0.62rem] uppercase tracking-[0.2em] text-yellow">
+                    {String(i + 1).padStart(2, '0')}
+                  </p>
+                  <h3 className="mt-1 font-display text-lg font-semibold uppercase leading-tight text-paper transition duration-300 group-hover:text-yellow md:text-xl">
+                    {company.name}
+                  </h3>
+                </div>
+              </div>
+              <p className="min-h-[88px] border-t border-white/10 px-3 py-3 text-xs leading-relaxed text-muted transition duration-300 group-hover:text-paper/90 md:min-h-[116px] md:px-4 md:text-sm">
                 {company.description}
               </p>
             </motion.a>
@@ -56,38 +74,5 @@ export function About() {
         <PullQuote text={COPY.about.quote.text} cite={COPY.about.quote.cite} />
       </div>
     </section>
-  )
-}
-
-function CompanyLogo({ name }: { name: string }) {
-  if (name === '316Studio') {
-    return (
-      <span className="block font-display text-2xl font-semibold uppercase leading-none text-paper transition duration-300 group-hover:text-yellow md:text-3xl">
-        316Studio
-      </span>
-    )
-  }
-
-  if (name === 'Cúspide Mx') {
-    return (
-      <span className="block font-display text-2xl font-semibold uppercase leading-none text-paper transition duration-300 group-hover:text-yellow md:text-3xl">
-        Cúspide
-        <span className="ml-1 text-sm text-yellow md:text-base">Mx</span>
-      </span>
-    )
-  }
-
-  if (name === 'Plexx') {
-    return (
-      <span className="block font-display text-3xl font-semibold lowercase leading-none text-paper transition duration-300 group-hover:text-yellow md:text-4xl">
-        plexx
-      </span>
-    )
-  }
-
-  return (
-    <span className="block font-display text-2xl font-semibold uppercase leading-none text-paper transition duration-300 group-hover:text-yellow md:text-3xl">
-      Propulsor
-    </span>
   )
 }
