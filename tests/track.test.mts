@@ -32,14 +32,30 @@ test('about section includes four company logo cards with short descriptions', (
   }
 })
 
-test('track section uses real visual proof items instead of placeholder logos', () => {
+test('track section uses the requested scenario proof items', () => {
   const proofItems = (COPY.track as unknown as { proofItems?: Array<Record<string, string>> }).proofItems
 
   assert.ok(Array.isArray(proofItems))
-  assert.equal(proofItems.length, 5)
+  assert.deepEqual(
+    proofItems.map((item) => item.label),
+    [
+      'Entrepreneur México',
+      'Lead Summit (Maxwell Leadership)',
+      'Gigantes del futuro',
+      'Escenario compartido',
+      '+150 Conferencias',
+      '+50 Workshops corporativos',
+      '+40 ciudades en 6 países',
+      '+80,000 personas',
+    ],
+  )
+
+  const serializedProofItems = JSON.stringify(proofItems)
+  assert.equal(serializedProofItems.includes('316 Studio'), false)
+  assert.equal(serializedProofItems.includes('Hazlo Magnífico'), false)
 
   for (const item of proofItems) {
-    assert.match(item.src, /^\/assets\/track\//)
+    assert.match(item.src, /^\/assets\/(accreditations|companies|track)\//)
     assert.ok(statSync(resolve('public', item.src.replace(/^\//, ''))).size > 50_000)
     assert.ok(item.alt.length > 20)
     assert.ok(item.label.length > 0)
