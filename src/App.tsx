@@ -52,7 +52,22 @@ export default function App() {
       ScrollTrigger.update()
     })
 
+    const scrollToHash = () => {
+      const id = window.location.hash.slice(1)
+      if (!id) return
+
+      const target = document.getElementById(decodeURIComponent(id))
+      if (!target) return
+
+      lenis.scrollTo(target, { offset: -88, immediate: true })
+    }
+
+    const hashScrollTimer = window.setTimeout(scrollToHash, 120)
+    window.addEventListener('hashchange', scrollToHash)
+
     return () => {
+      window.clearTimeout(hashScrollTimer)
+      window.removeEventListener('hashchange', scrollToHash)
       gsap.ticker.remove(update)
       lenis.destroy()
     }
