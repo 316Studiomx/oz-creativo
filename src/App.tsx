@@ -12,6 +12,7 @@ import { ProposalPage } from './components/ProposalPage'
 import { Hero } from './sections/Hero'
 import { Stats } from './sections/Stats'
 import { About } from './sections/About'
+import { Book } from './sections/Book'
 import { Services } from './sections/Services'
 import { Track } from './sections/Track'
 import { Contact } from './sections/Contact'
@@ -86,6 +87,7 @@ export default function App() {
         <Hero onOpenForm={() => setLeadFormOpen(true)} />
         <Stats />
         <About />
+        <Book />
         <Services onOpenForm={() => setLeadFormOpen(true)} />
         <Track />
         <Contact onOpenForm={() => setLeadFormOpen(true)} />

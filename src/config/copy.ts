@@ -12,6 +12,7 @@ export const COPY = {
     links: [
       { label: 'Inicio', href: '#inicio' },
       { label: 'Sobre mí', href: '#sobre-mi' },
+      { label: 'Libro', href: '#libro' },
       { label: 'Lo que hago', href: '#lo-que-hago' },
       { label: 'Escenarios', href: '#escenarios' },
       { label: 'Hablemos', href: '#hablemos' },
@@ -77,6 +78,24 @@ export const COPY = {
         href: '#hablemos',
       },
     ],
+  },
+
+  book: {
+    eyebrow: 'Autor',
+    title: 'Hazlo Magnífico',
+    subtitle: 'La fórmula para emprender tus sueños sin perder el alma.',
+    body:
+      'En este libro comparto principios, historias y decisiones que me ayudaron a construir desde cero, vender con propósito y emprender tus sueños sin perder el alma.',
+    points: [
+      'Para emprendedores que quieren avanzar con claridad.',
+      'Para quienes necesitan ordenar ideas, fe, ambición y ejecución.',
+      'Para construir algo rentable sin sacrificar el alma en el camino.',
+    ],
+    src: '/assets/track/hazlo-magnifico-libro.jpg',
+    alt: 'Libro Hazlo Magnífico de Oz Creativo sobre una mesa, con portada amarilla y corazón en relieve.',
+    amazonHref: '',
+    cta: 'Comprar en Amazon',
+    ctaPending: 'Link de Amazon pendiente',
   },
 
   services: {

@@ -104,23 +104,40 @@ function normalizeLead_(payload) {
 function sendInternalEmail_(lead) {
   MailApp.sendEmail({
     to: OWNER_EMAIL,
-    subject: `Nueva solicitud y propuesta generada: ${lead.nombre} ${lead.apellido}`,
-    htmlBody: `
-      <div style="font-family:Arial,sans-serif;color:#111;line-height:1.5">
-        <h2>Nuevo formulario recibido</h2>
-        <p><strong>Folio:</strong> ${escape_(lead.folio || '-')}</p>
-        <p><strong>Propuesta:</strong> ${escape_(lead.proposalServiceTitle || lead.servicioPrincipal)} · ${escape_(lead.proposalInvestment || '-')}</p>
-        ${leadTable_(lead)}
-        <p>
-          <a href="${escape_(lead.proposalUrl || '')}" style="display:inline-block;background:#111;color:#ffd400;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700;margin-right:8px">
-            Abrir propuesta privada
-          </a>
-          <a href="${WHATSAPP_URL}" style="display:inline-block;background:#ffd400;color:#0a0a0a;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700">
-            Abrir WhatsApp
-          </a>
-        </p>
-      </div>
-    `,
+    subject: `Nueva solicitud: ${lead.nombre} ${lead.apellido} - ${lead.proposalServiceTitle || lead.servicioPrincipal}`,
+    htmlBody: emailShell_(
+      `Nuevo formulario recibido de ${lead.nombre} ${lead.apellido}.`,
+      `
+        ${emailHero_(
+          'Nueva solicitud',
+          'Ficha del prospecto',
+          `Se generó una propuesta privada para ${escape_(lead.institucion || 'la institución capturada')}. Revisa el resumen, valida el fit y da seguimiento desde WhatsApp.`,
+          lead.folio,
+        )}
+        <tr>
+          <td style="padding:0 34px 22px">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                ${summaryMetric_('Servicio', lead.proposalServiceTitle || lead.servicioPrincipal)}
+                ${summaryMetric_('Inversión', lead.proposalInvestment || 'Ver propuesta')}
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 34px 26px">
+            ${leadTable_(lead)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 34px 34px;text-align:center">
+            ${emailButton_(lead.proposalUrl || '', 'Abrir propuesta privada', 'dark')}
+            <span style="display:inline-block;width:8px"></span>
+            ${emailButton_(WHATSAPP_URL, 'Abrir WhatsApp', 'yellow')}
+          </td>
+        </tr>
+      `,
+    ),
   });
 }
 
@@ -141,79 +158,56 @@ function clientProposalTemplate_(lead) {
   const investment = lead.proposalInvestment || 'Ver detalle en propuesta privada';
   const validUntil = lead.proposalValidUntil ? formatDate_(lead.proposalValidUntil) : 'Vigencia indicada en la propuesta';
 
-  return `
-    <div style="display:none;font-size:1px;color:#0a0a0a;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden">
-      Tu propuesta privada de Oz Creativo está lista.
-    </div>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0f0ec;font-family:Arial,'Helvetica Neue',sans-serif">
+  return emailShell_(
+    'Tu propuesta privada de Oz Creativo está lista.',
+    `
+      ${emailHero_(
+        'Propuesta privada',
+        'Tu propuesta privada ya está lista',
+        `Hola, ${escape_(lead.nombre)}. Preparamos una propuesta privada para ${escape_(lead.institucion)} con overview, alcance, inversión y siguientes pasos.`,
+        folio,
+      )}
       <tr>
-        <td align="center" style="padding:24px 12px">
-          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#111;overflow:hidden;border-radius:16px">
-            <tr><td style="height:4px;background:#ffd400;font-size:0">&nbsp;</td></tr>
+        <td style="padding:0 34px 20px">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#151515;border:1px solid #2a2a2a;border-radius:18px;overflow:hidden">
             <tr>
-              <td style="padding:24px 36px 12px">
+              <td style="padding:20px;border-bottom:1px solid #262626">
+                ${emailSectionTitle_('Resumen de solicitud')}
+                <p style="margin:8px 0 0;color:#ffffff;font-size:18px;line-height:1.35;font-weight:800">${escape_(serviceTitle)}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="font-size:24px;font-weight:900;color:#fff">OZ <span style="color:#ffd400">CREATIVO</span></td>
-                    <td align="right" style="font-size:10px;color:#777;text-transform:uppercase;letter-spacing:2px">Folio ${escape_(folio)}</td>
+                    ${summaryMetric_('Inversión', investment)}
+                    ${summaryMetric_('Vigencia', validUntil)}
                   </tr>
                 </table>
               </td>
             </tr>
-            <tr>
-              <td style="padding:30px 36px 24px">
-                <p style="margin:0 0 10px;font-size:12px;color:#ffd400;text-transform:uppercase;letter-spacing:3px;font-weight:700">Tu propuesta está lista</p>
-                <h1 style="margin:0 0 16px;font-size:34px;font-weight:900;color:#fff;line-height:1.15">Hola, ${escape_(lead.nombre)}.</h1>
-                <p style="margin:0 0 12px;font-size:15px;color:#aaa;line-height:1.7">Preparamos una propuesta privada para <strong style="color:#fff">${escape_(lead.institucion)}</strong> con overview, alcance, inversión y siguientes pasos.</p>
-                <p style="margin:0;font-size:14px;color:#888;line-height:1.7">Haz clic en el botón para revisar el detalle completo. La liga es privada y queda asociada a tu solicitud.</p>
-              </td>
-            </tr>
-            <tr><td style="padding:0 36px"><div style="height:1px;background:#222"></div></td></tr>
-            <tr>
-              <td style="padding:22px 36px 8px">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#1a1a1a;border-radius:10px">
-                  <tr>
-                    <td style="padding:14px 16px">
-                      <span style="font-size:10px;color:#777;text-transform:uppercase;letter-spacing:1.5px">Servicio</span><br/>
-                      <span style="font-size:14px;color:#fff;font-weight:700">${escape_(serviceTitle)}</span>
-                    </td>
-                    <td style="padding:14px 16px;text-align:right">
-                      <span style="font-size:10px;color:#777;text-transform:uppercase;letter-spacing:1.5px">Inversión</span><br/>
-                      <span style="font-size:14px;color:#ffd400;font-weight:700">${escape_(investment)}</span>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:8px 36px 18px;text-align:center">
-                <p style="margin:0;font-size:12px;color:#777">Vigencia: ${escape_(validUntil)}</p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:8px 36px 30px;text-align:center">
-                <a href="${escape_(proposalUrl)}" style="display:inline-block;background:#ffd400;color:#111;text-decoration:none;font-size:15px;font-weight:800;padding:16px 34px;border-radius:999px;text-transform:uppercase;letter-spacing:1px">Ver propuesta privada</a>
-              </td>
-            </tr>
-            <tr><td style="padding:0 36px"><div style="height:1px;background:#222"></div></td></tr>
-            <tr>
-              <td style="padding:20px 36px 24px;text-align:center">
-                <p style="margin:0 0 12px;font-size:13px;color:#888">¿Prefieres escribir antes de decidir?</p>
-                <a href="${WHATSAPP_URL}" style="font-size:13px;color:#ffd400;text-decoration:underline;font-weight:700">Abrir WhatsApp</a>
-              </td>
-            </tr>
-            <tr>
-              <td style="background:#0a0a0a;padding:22px 36px;border-top:1px solid #1a1a1a">
-                <span style="font-size:14px;font-weight:900;color:#fff">OZ <span style="color:#ffd400">CREATIVO</span></span><br/>
-                <span style="font-size:12px;color:#555;line-height:2">oz@expocuspide.com · ozcreativo.com</span>
-              </td>
-            </tr>
-            <tr><td style="height:4px;background:#ffd400;font-size:0">&nbsp;</td></tr>
           </table>
         </td>
       </tr>
-    </table>
-  `;
+      <tr>
+        <td style="padding:0 34px 30px;text-align:center">
+          ${emailButton_(proposalUrl, 'Ver propuesta privada', 'yellow')}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:0 34px 30px">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #2a2a2a">
+            <tr>
+              <td align="center" style="padding-top:22px">
+                <p style="margin:0 0 12px;color:#9b9b9b;font-size:14px;line-height:1.6">¿Prefieres escribir antes de decidir?</p>
+                ${emailButton_(WHATSAPP_URL, 'Abrir WhatsApp', 'dark')}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    `,
+  );
 }
 
 function leadTable_(lead) {
@@ -240,15 +234,88 @@ function leadTable_(lead) {
   ];
 
   return `
-    <table cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:720px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e8e4d4">
+      <tr>
+        <td colspan="2" style="background:#ffd400;padding:16px 18px;color:#111111;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:2px">
+          Resumen de solicitud
+        </td>
+      </tr>
       ${rows.map(([label, value]) => `
         <tr>
-          <td style="border:1px solid #ddd;background:#f7f7f7;font-weight:700;width:210px">${escape_(label)}</td>
-          <td style="border:1px solid #ddd">${escape_(value || '-')}</td>
+          <td style="border-top:1px solid #eee8d0;background:#faf8ec;color:#5d5540;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;width:190px;padding:12px 14px;vertical-align:top">${escape_(label)}</td>
+          <td style="border-top:1px solid #eee8d0;color:#111111;font-size:14px;line-height:1.55;padding:12px 14px;vertical-align:top">${escape_(value || '-')}</td>
         </tr>
       `).join('')}
     </table>
   `;
+}
+
+function emailShell_(preheader, bodyRows) {
+  return `
+    <div style="display:none;font-size:1px;color:#0a0a0a;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden">
+      ${escape_(preheader)}
+    </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#efeee8;font-family:Arial,'Helvetica Neue',sans-serif">
+      <tr>
+        <td align="center" style="padding:28px 12px">
+          <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#0b0b0b;border-radius:24px;overflow:hidden;box-shadow:0 22px 60px rgba(0,0,0,.22)">
+            <tr><td style="height:5px;background:#ffd400;font-size:0">&nbsp;</td></tr>
+            ${bodyRows}
+            <tr>
+              <td style="background:#050505;padding:24px 34px;border-top:1px solid #222222">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="font-size:16px;font-weight:900;color:#ffffff;letter-spacing:.5px">OZ <span style="color:#ffd400">CREATIVO</span></td>
+                    <td align="right" style="font-size:12px;color:#777777">ozcreativo.com</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr><td style="height:5px;background:#ffd400;font-size:0">&nbsp;</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+function emailHero_(eyebrow, title, body, folio) {
+  return `
+    <tr>
+      <td style="padding:30px 34px 28px;background:linear-gradient(135deg,#111111 0%,#181818 58%,#332b00 100%)">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:24px;font-weight:900;color:#ffffff;letter-spacing:.3px">OZ <span style="color:#ffd400">CREATIVO</span></td>
+            <td align="right" style="font-size:10px;color:#b7a75b;text-transform:uppercase;letter-spacing:2px">${folio ? `Folio ${escape_(folio)}` : ''}</td>
+          </tr>
+        </table>
+        <p style="margin:34px 0 10px;color:#ffd400;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:3px">${escape_(eyebrow)}</p>
+        <h1 style="margin:0;color:#ffffff;font-size:38px;line-height:1.02;font-weight:900;letter-spacing:-.5px">${escape_(title)}</h1>
+        <p style="margin:18px 0 0;color:#c9c9c9;font-size:15px;line-height:1.75">${body}</p>
+      </td>
+    </tr>
+  `;
+}
+
+function summaryMetric_(label, value) {
+  return `
+    <td width="50%" style="padding:16px 18px;border-right:1px solid #262626;vertical-align:top">
+      <span style="display:block;color:#777777;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.8px">${escape_(label)}</span>
+      <span style="display:block;margin-top:7px;color:#ffd400;font-size:15px;font-weight:900;line-height:1.35">${escape_(value || '-')}</span>
+    </td>
+  `;
+}
+
+function emailSectionTitle_(label) {
+  return `<span style="display:block;color:#ffd400;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:2.2px">${escape_(label)}</span>`;
+}
+
+function emailButton_(href, label, variant) {
+  const yellow = variant === 'yellow';
+  const bg = yellow ? '#ffd400' : '#111111';
+  const color = yellow ? '#111111' : '#ffd400';
+  const border = yellow ? '#ffd400' : '#333333';
+  return `<a href="${escape_(href || '#')}" style="display:inline-block;background:${bg};color:${color};border:1px solid ${border};text-decoration:none;font-size:14px;font-weight:900;padding:15px 26px;border-radius:999px;text-transform:uppercase;letter-spacing:.8px">${escape_(label)}</a>`;
 }
 
 function text_(value) {

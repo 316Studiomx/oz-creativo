@@ -36,3 +36,16 @@ test('form emails send a private proposal link instead of a generic follow-up', 
   assert.equal(appsScriptSource.includes('Ver propuesta privada'), true)
   assert.equal(appsScriptSource.includes('Tu propuesta privada está lista'), true)
 })
+
+test('form emails use a premium visual template for owner and client', () => {
+  for (const expected of [
+    'emailShell_',
+    'emailButton_',
+    'Resumen de solicitud',
+    'Ficha del prospecto',
+    'Tu propuesta privada ya está lista',
+    'background:linear-gradient(135deg,#111111 0%,#181818 58%,#332b00 100%)',
+  ]) {
+    assert.equal(appsScriptSource.includes(expected), true, `Missing premium email marker: ${expected}`)
+  }
+})
