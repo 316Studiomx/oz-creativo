@@ -5,9 +5,26 @@ import test from 'node:test'
 
 import { COPY } from '../src/config/copy.ts'
 
+test('about section includes four company logo cards with short descriptions', () => {
+  const companies = (COPY.about as unknown as {
+    companies?: Array<{ name: string; description: string; href: string }>
+  }).companies
+
+  assert.ok(Array.isArray(companies))
+  assert.deepEqual(
+    companies.map((company) => company.name),
+    ['316Studio', 'Cúspide Mx', 'Plexx', 'Propulsor'],
+  )
+
+  for (const company of companies) {
+    assert.match(company.href, /^(https?:\/\/|#)/)
+    assert.ok(company.description.length > 0)
+    assert.ok(company.description.split(/\s+/).length <= 20)
+  }
+})
+
 test('track section uses real visual proof items instead of placeholder logos', () => {
-  const proofItems = (COPY.track as unknown as { proofItems?: Array<Record<string, string>> })
-    .proofItems
+  const proofItems = (COPY.track as unknown as { proofItems?: Array<Record<string, string>> }).proofItems
 
   assert.ok(Array.isArray(proofItems))
   assert.equal(proofItems.length, 5)
@@ -18,12 +35,37 @@ test('track section uses real visual proof items instead of placeholder logos', 
     assert.ok(item.alt.length > 20)
     assert.ok(item.label.length > 0)
     assert.ok(item.caption.length > 0)
+    assert.match(item.href, /^(https?:\/\/|#)/)
   }
 })
 
-test('track section does not publish placeholder evidence copy', () => {
+test('track section is renamed to escenarios and does not publish keyword capsules', () => {
   const serializedTrack = JSON.stringify(COPY.track)
 
+  assert.equal(COPY.track.title, 'Escenarios')
+  assert.equal('badges' in COPY.track, false)
   assert.equal(serializedTrack.includes('Logo 03'), false)
   assert.equal(serializedTrack.includes('placeholder editable'), false)
+  assert.equal(serializedTrack.includes('Escenarios, marcas y reconocimientos'), false)
+})
+
+test('accreditations section lists clickable visual credentials', () => {
+  const accreditations = (COPY.track as unknown as {
+    accreditations?: Array<{ label: string; caption: string; src: string; alt: string; href: string }>
+  }).accreditations
+
+  assert.ok(Array.isArray(accreditations))
+  assert.equal(accreditations.length, 8)
+  assert.ok(accreditations.some((item) => item.label.includes('Harvard Business School')))
+  assert.ok(accreditations.some((item) => item.label.includes('StartUp México')))
+  assert.ok(accreditations.some((item) => item.label.includes('Meta')))
+  assert.ok(accreditations.some((item) => item.label.includes('Forbes')))
+
+  for (const item of accreditations) {
+    assert.match(item.src, /^\/assets\/track\//)
+    assert.ok(statSync(resolve('public', item.src.replace(/^\//, ''))).size > 50_000)
+    assert.ok(item.alt.length > 20)
+    assert.ok(item.caption.length > 0)
+    assert.match(item.href, /^(https?:\/\/|#)/)
+  }
 })
