@@ -8,6 +8,7 @@ import { Cursor } from './components/Cursor'
 import { Grain } from './components/Grain'
 import { HeroBackdropFallback } from './components/HeroBackdropFallback'
 import { LeadFormModal } from './components/LeadFormModal'
+import { ProposalPage } from './components/ProposalPage'
 import { Hero } from './sections/Hero'
 import { Stats } from './sections/Stats'
 import { About } from './sections/About'
@@ -24,6 +25,7 @@ gsap.registerPlugin(ScrollTrigger)
 const Scene = lazy(() => import('./three/Scene'))
 
 export default function App() {
+  const proposalRoute = getProposalRoute(window.location.pathname)
   const reduced = useReducedMotion()
   const isMobile = useIsMobile()
   const use3D = !isMobile // reduced-motion still gets a calm 3D version
@@ -55,6 +57,16 @@ export default function App() {
     }
   }, [reduced])
 
+  if (proposalRoute) {
+    return (
+      <>
+        <Cursor />
+        <Grain />
+        <ProposalPage folio={proposalRoute.folio} token={proposalRoute.token} />
+      </>
+    )
+  }
+
   return (
     <>
       <Cursor />
@@ -80,4 +92,13 @@ export default function App() {
       </main>
     </>
   )
+}
+
+function getProposalRoute(pathname: string): { folio: string; token: string } | null {
+  const [, route, folio, token] = pathname.split('/')
+  if (route !== 'propuesta' || !folio || !token) {
+    return null
+  }
+
+  return { folio, token }
 }

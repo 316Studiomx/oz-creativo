@@ -1,4 +1,12 @@
 import type { Config } from '@netlify/functions'
+import { getStore } from '@netlify/blobs'
+
+import { getDailyExchangeRate } from './_shared/banxico.mts'
+import {
+  buildPrivateProposal,
+  proposalStorageKey,
+  type ExchangeRateSnapshot,
+} from './_shared/proposals.mts'
 
 declare const Netlify: {
   env: {
@@ -58,6 +66,14 @@ type NormalizedLead = {
   userAgent: string
 }
 
+type LeadWebhookPayload = NormalizedLead & {
+  folio: string
+  proposalUrl: string
+  proposalInvestment: string
+  proposalServiceTitle: string
+  proposalValidUntil: string
+}
+
 export default async (req: Request) => {
   if (req.method !== 'POST') {
     return json({ message: 'Metodo no permitido.' }, 405)
@@ -86,11 +102,44 @@ export default async (req: Request) => {
     return json({ message: normalized.message }, normalized.status)
   }
 
+  const proposal = buildPrivateProposal(normalized, {
+    origin: getOrigin(req),
+    token: createToken(),
+    exchangeRate: await getExchangeRateSnapshot(),
+  })
+
+  await getStore({ name: 'oz-proposals', consistency: 'strong' }).setJSON(
+    proposalStorageKey(proposal.folio, proposal.token),
+    proposal,
+    {
+      metadata: {
+        folio: proposal.folio,
+        email: proposal.email,
+        service: proposal.serviceTitle,
+        createdAt: proposal.createdAt,
+      },
+    },
+  )
+
+  const webhookPayload: LeadWebhookPayload = {
+    ...normalized,
+    contextoProyecto: appendProposalContext(
+      normalized.contextoProyecto,
+      proposal.proposalUrl,
+      proposal.investment.amount,
+    ),
+    folio: proposal.folio,
+    proposalUrl: proposal.proposalUrl,
+    proposalInvestment: proposal.investment.amount,
+    proposalServiceTitle: proposal.serviceTitle,
+    proposalValidUntil: proposal.validUntil,
+  }
+
   try {
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(normalized),
+      body: JSON.stringify(webhookPayload),
     })
     const text = await response.text()
     const result = parseJson(text)
@@ -102,7 +151,7 @@ export default async (req: Request) => {
       )
     }
 
-    return json({ ok: true, message: 'Solicitud recibida.' })
+    return json({ ok: true, message: 'Solicitud recibida.', folio: proposal.folio })
   } catch {
     return json({ message: 'No se pudo conectar con Google Sheets.' }, 502)
   }
@@ -179,6 +228,42 @@ function parseJson(textValue: string): { ok?: boolean; message?: string } | null
   } catch {
     return null
   }
+}
+
+async function getExchangeRateSnapshot(): Promise<ExchangeRateSnapshot | null> {
+  const token = Netlify.env.get('BANXICO_TOKEN')
+  if (!token) {
+    return null
+  }
+
+  try {
+    const rate = await getDailyExchangeRate(token)
+    return { rate: rate.rate, rateDate: rate.rateDate }
+  } catch {
+    return null
+  }
+}
+
+function getOrigin(req: Request): string {
+  const url = new URL(req.url)
+  return url.origin
+}
+
+function createToken(): string {
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function appendProposalContext(current: string, proposalUrl: string, investment: string): string {
+  return [
+    current,
+    'Propuesta privada generada:',
+    proposalUrl,
+    `Inversion: ${investment}`,
+  ]
+    .filter(Boolean)
+    .join('\n')
 }
 
 function json(body: unknown, status = 200): Response {

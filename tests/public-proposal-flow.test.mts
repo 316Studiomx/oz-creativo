@@ -30,3 +30,9 @@ test('form emails do not include estimated quote fields before private proposal 
     assert.equal(appsScriptSource.includes(forbidden), false, `Unexpected email quote field: ${forbidden}`)
   }
 })
+
+test('form emails send a private proposal link instead of a generic follow-up', () => {
+  assert.equal(appsScriptSource.includes('proposalUrl'), true)
+  assert.equal(appsScriptSource.includes('Ver propuesta privada'), true)
+  assert.equal(appsScriptSource.includes('Tu propuesta privada está lista'), true)
+})

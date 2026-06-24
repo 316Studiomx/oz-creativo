@@ -290,8 +290,8 @@ export function LeadForm() {
       {state === 'success' && (
         <div className="mt-5 border border-yellow/40 bg-yellow/10 px-4 py-4 text-sm text-paper">
           <p>
-            Gracias. Recibí tu información; el siguiente paso será revisar el contexto y enviarte
-            una propuesta privada por correo.
+            Gracias. Generé tu solicitud y la propuesta privada se enviará por correo con folio,
+            alcance, inversión y siguientes pasos.
           </p>
           <a
             href={whatsappHref}
@@ -299,7 +299,7 @@ export function LeadForm() {
             rel="noreferrer"
             className="mt-3 inline-flex rounded-full bg-yellow px-5 py-2.5 font-semibold text-ink"
           >
-            Dar seguimiento por WhatsApp
+            Escribir por WhatsApp
           </a>
         </div>
       )}
