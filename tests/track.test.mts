@@ -70,8 +70,16 @@ test('accreditations section lists clickable visual credentials', () => {
   assert.ok(accreditations.some((item) => item.label.includes('Meta')))
   assert.ok(accreditations.some((item) => item.label.includes('Forbes')))
 
+  const srcByLabel = new Map(accreditations.map((item) => [item.label, item.src]))
+  assert.equal(srcByLabel.get('StartUp México'), '/assets/accreditations/startup-mexico.jpg')
+  assert.equal(srcByLabel.get('Meta Marketing Digital'), '/assets/accreditations/meta-marketing-digital.jpg')
+  assert.equal(srcByLabel.get('Hora Cero'), '/assets/accreditations/hora-cero.jpg')
+  assert.equal(srcByLabel.get('Lead Summit'), '/assets/accreditations/lead-summit.jpg')
+  assert.equal(srcByLabel.get('Mejor Q’ Ayer'), '/assets/accreditations/mejor-que-ayer.jpg')
+  assert.equal(srcByLabel.get('+$1M USD en anuncios'), '/assets/accreditations/inversion-anuncios.jpg')
+
   for (const item of accreditations) {
-    assert.match(item.src, /^\/assets\/track\//)
+    assert.match(item.src, /^\/assets\/(accreditations|track)\//)
     assert.ok(statSync(resolve('public', item.src.replace(/^\//, ''))).size > 50_000)
     assert.ok(item.alt.length > 20)
     assert.ok(item.caption.length > 0)
