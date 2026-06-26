@@ -294,6 +294,11 @@ function PaymentPanel({ proposal, token }: { proposal: PrivateProposal; token: s
             <span className="block text-xs font-medium text-ink/70">
               {formatCheckoutAmount(option.amount.value, option.amount.currency)}
             </span>
+            {option.provider === 'mercado-pago' ? (
+              <span className="block text-[11px] font-medium text-ink/70">
+                Hasta 3 y 6 MSI, sujeto a tarjeta y banco
+              </span>
+            ) : null}
           </button>
         ))}
       </div>

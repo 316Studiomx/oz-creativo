@@ -31,6 +31,9 @@ export type MercadoPagoPreference = {
     pending: string
     failure: string
   }
+  payment_methods: {
+    installments: number
+  }
   auto_return: 'approved'
   notification_url: string
   external_reference: string
@@ -97,6 +100,9 @@ export function buildMercadoPagoPreference({
       success: `${proposal.proposalUrl}?payment=mercado-pago-success`,
       pending: `${proposal.proposalUrl}?payment=pending`,
       failure: `${proposal.proposalUrl}?payment=cancelled`,
+    },
+    payment_methods: {
+      installments: 6,
     },
     auto_return: 'approved',
     notification_url: `${normalizedOrigin}/api/payments/mercado-pago-webhook`,
