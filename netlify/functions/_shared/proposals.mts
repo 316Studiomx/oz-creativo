@@ -23,6 +23,18 @@ export type ExchangeRateSnapshot = {
   rateDate: string
 }
 
+export type PaymentProvider = 'stripe' | 'mercado-pago'
+export type PaymentCurrency = 'MXN' | 'USD'
+
+export type CheckoutOption = {
+  provider: PaymentProvider
+  label: string
+  amount: {
+    value: number
+    currency: PaymentCurrency
+  }
+}
+
 export type PrivateProposal = {
   folio: string
   token: string
@@ -47,14 +59,14 @@ export type PrivateProposal = {
   payment:
     | {
         status: 'enabled'
-        method: 'transfer'
+        method: 'checkout'
         reference: string
-        bank: string
-        beneficiary: string
-        clabe: string
-        account: string
-        whatsappUrl: string
+        checkoutOptions: CheckoutOption[]
         note: string
+        paidAt?: string
+        paidProvider?: PaymentProvider
+        providerPaymentId?: string
+        calendarUrl?: string
       }
     | {
         status: 'discovery'
@@ -66,7 +78,6 @@ export type PrivateProposal = {
 const EVENT_BASE_PRICE_MXN = 19000
 const EVENT_EXTRA_TRAVEL_DAY_MXN = 5000
 const CONSULTING_STARTS_AT_USD = 9000
-const WHATSAPP_NUMBER = '528181199759'
 const DISCOVERY_CALENDAR_URL = 'https://calendar.app.google/YUtUYehnhJyt1Wsz5'
 
 const TRAVEL_OPTIONS: Record<string, { label: string; extraDays: number }> = {
@@ -85,15 +96,12 @@ const MENTORING_PACKAGES: Record<string, { label: string; priceUsd: number; sess
   twelve: { label: 'Acompañamiento Estrategia Magnífica 1:1', priceUsd: 1990, sessions: '12 sesiones' },
 }
 
-const BANK_DETAILS = {
-  bank: 'Santander',
-  beneficiary: 'Jorge Oswaldo Valadez Rivera',
-  clabe: '014822605719781690',
-  account: '60-57197816-9',
-}
-
 export function proposalStorageKey(folio: string, token: string): string {
   return `proposals/${cleanSegment(folio)}-${cleanSegment(token)}.json`
+}
+
+export function proposalLookupStorageKey(folio: string): string {
+  return `proposal-index/${cleanSegment(folio)}.json`
 }
 
 export function buildPrivateProposal(
@@ -192,7 +200,10 @@ function eventProposalParts(lead: LeadForProposal) {
       'Confirmar fecha, ciudad, sede y logística.',
       'Realizar pago total para bloquear fecha y continuar con contrato/coordinación.',
     ],
-    payment: paymentDetails('Pago total para bloquear la fecha. Usa el folio como referencia.'),
+    payment: paymentDetails(
+      'Pago total para bloquear la fecha. El checkout seguro se abrirá con Stripe o Mercado Pago.',
+      mxnCheckoutOptions(totalMxn),
+    ),
   } satisfies Omit<PrivateProposal, 'folio' | 'token' | 'createdAt' | 'validUntil' | 'proposalUrl' | 'clientName' | 'institution' | 'email' | 'phone'>
 }
 
@@ -236,9 +247,13 @@ function mentoringProposalParts(lead: LeadForProposal, exchangeRate?: ExchangeRa
     nextSteps: [
       'Revisar la propuesta privada.',
       'Realizar pago total del paquete seleccionado.',
-      'Enviar comprobante por WhatsApp y agendar el bloque correspondiente.',
+      'Agendar la primera sesión cuando el pago quede confirmado automáticamente.',
     ],
-    payment: paymentDetails('Pago total para liberar agenda. Usa el folio como referencia.'),
+    payment: paymentDetails(
+      'Pago total para liberar agenda. Al confirmarse el pago se mostrará el enlace para agendar.',
+      mentoringCheckoutOptions(selected.priceUsd, exchangeRate),
+      DISCOVERY_CALENDAR_URL,
+    ),
   } satisfies Omit<PrivateProposal, 'folio' | 'token' | 'createdAt' | 'validUntil' | 'proposalUrl' | 'clientName' | 'institution' | 'email' | 'phone'>
 }
 
@@ -288,14 +303,18 @@ function consultingProposalParts(lead: LeadForProposal) {
   } satisfies Omit<PrivateProposal, 'folio' | 'token' | 'createdAt' | 'validUntil' | 'proposalUrl' | 'clientName' | 'institution' | 'email' | 'phone'>
 }
 
-function paymentDetails(note: string): PrivateProposal['payment'] {
+function paymentDetails(
+  note: string,
+  checkoutOptions: CheckoutOption[],
+  calendarUrl?: string,
+): PrivateProposal['payment'] {
   return {
     status: 'enabled',
-    method: 'transfer',
+    method: 'checkout',
     reference: '',
-    ...BANK_DETAILS,
-    whatsappUrl: '',
+    checkoutOptions,
     note,
+    calendarUrl,
   }
 }
 
@@ -304,18 +323,44 @@ function withPaymentReference(proposal: PrivateProposal): PrivateProposal {
     return proposal
   }
 
-  const message = encodeURIComponent(
-    `Hola Oz, ya revisé mi propuesta privada y quiero confirmar el pago del folio ${proposal.folio}.`,
-  )
-
   return {
     ...proposal,
     payment: {
       ...proposal.payment,
       reference: proposal.folio,
-      whatsappUrl: `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`,
     },
   }
+}
+
+function mxnCheckoutOptions(amountMxn: number): CheckoutOption[] {
+  const amount = { value: Math.round(amountMxn), currency: 'MXN' as const }
+  return [
+    { provider: 'stripe', label: 'Stripe', amount },
+    { provider: 'mercado-pago', label: 'Mercado Pago', amount },
+  ]
+}
+
+function mentoringCheckoutOptions(
+  priceUsd: number,
+  exchangeRate?: ExchangeRateSnapshot | null,
+): CheckoutOption[] {
+  const options: CheckoutOption[] = [
+    {
+      provider: 'stripe',
+      label: 'Stripe',
+      amount: { value: priceUsd, currency: 'USD' },
+    },
+  ]
+
+  if (exchangeRate) {
+    options.push({
+      provider: 'mercado-pago',
+      label: 'Mercado Pago',
+      amount: { value: Math.round(priceUsd * exchangeRate.rate), currency: 'MXN' },
+    })
+  }
+
+  return options
 }
 
 function createFolio(now: Date, token: string): string {

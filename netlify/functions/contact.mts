@@ -4,6 +4,7 @@ import { getStore } from '@netlify/blobs'
 import { getDailyExchangeRate } from './_shared/banxico.mts'
 import {
   buildPrivateProposal,
+  proposalLookupStorageKey,
   proposalStorageKey,
   type ExchangeRateSnapshot,
 } from './_shared/proposals.mts'
@@ -111,6 +112,19 @@ export default async (req: Request) => {
   await getStore({ name: 'oz-proposals', consistency: 'strong' }).setJSON(
     proposalStorageKey(proposal.folio, proposal.token),
     proposal,
+    {
+      metadata: {
+        folio: proposal.folio,
+        email: proposal.email,
+        service: proposal.serviceTitle,
+        createdAt: proposal.createdAt,
+      },
+    },
+  )
+
+  await getStore({ name: 'oz-proposals', consistency: 'strong' }).setJSON(
+    proposalLookupStorageKey(proposal.folio),
+    { folio: proposal.folio, token: proposal.token },
     {
       metadata: {
         folio: proposal.folio,

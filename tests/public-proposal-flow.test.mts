@@ -4,6 +4,7 @@ import test from 'node:test'
 
 const leadFormSource = readFileSync('src/components/LeadForm.tsx', 'utf8')
 const appsScriptSource = readFileSync('scripts/google-apps-script/contact-form.gs', 'utf8')
+const proposalPageSource = readFileSync('src/components/ProposalPage.tsx', 'utf8')
 
 test('public lead form captures proposal requests without exposing quote pricing', () => {
   assert.equal(leadFormSource.includes('/ Solicitud de propuesta'), true)
@@ -48,4 +49,11 @@ test('form emails use a premium visual template for owner and client', () => {
   ]) {
     assert.equal(appsScriptSource.includes(expected), true, `Missing premium email marker: ${expected}`)
   }
+})
+
+test('private proposal page uses checkout buttons instead of transfer instructions', () => {
+  assert.equal(proposalPageSource.includes('/api/payments/create'), true)
+  assert.equal(proposalPageSource.includes('CLABE'), false)
+  assert.equal(proposalPageSource.includes('Enviar comprobante'), false)
+  assert.equal(proposalPageSource.includes('Mercado Pago'), true)
 })

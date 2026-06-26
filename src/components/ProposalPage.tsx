@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
+type PaymentProvider = 'stripe' | 'mercado-pago'
+
 type PrivateProposal = {
   folio: string
   createdAt: string
@@ -23,14 +25,21 @@ type PrivateProposal = {
   payment:
     | {
         status: 'enabled'
-        method: 'transfer'
+        method: 'checkout'
         reference: string
-        bank: string
-        beneficiary: string
-        clabe: string
-        account: string
-        whatsappUrl: string
+        checkoutOptions: Array<{
+          provider: PaymentProvider
+          label: string
+          amount: {
+            value: number
+            currency: 'MXN' | 'USD'
+          }
+        }>
         note: string
+        paidAt?: string
+        paidProvider?: PaymentProvider
+        providerPaymentId?: string
+        calendarUrl?: string
       }
     | {
         status: 'discovery'
@@ -42,6 +51,12 @@ type PrivateProposal = {
 type ApiResponse = {
   ok: boolean
   proposal?: PrivateProposal
+  message?: string
+}
+
+type PaymentCreateResponse = {
+  ok: boolean
+  checkoutUrl?: string
   message?: string
 }
 
@@ -174,7 +189,7 @@ export function ProposalPage({ folio, token }: Props) {
               <BulletList items={proposal.nextSteps} />
             </Panel>
 
-            <PaymentPanel proposal={proposal} />
+            <PaymentPanel proposal={proposal} token={token} />
           </div>
         </div>
       </section>
@@ -182,7 +197,10 @@ export function ProposalPage({ folio, token }: Props) {
   )
 }
 
-function PaymentPanel({ proposal }: { proposal: PrivateProposal }) {
+function PaymentPanel({ proposal, token }: { proposal: PrivateProposal; token: string }) {
+  const [pendingProvider, setPendingProvider] = useState<PaymentProvider | ''>('')
+  const [paymentError, setPaymentError] = useState('')
+
   if (proposal.payment.status === 'discovery') {
     return (
       <Panel title="Agenda">
@@ -199,24 +217,87 @@ function PaymentPanel({ proposal }: { proposal: PrivateProposal }) {
     )
   }
 
+  if (proposal.payment.paidAt) {
+    return (
+      <Panel title="Pago confirmado">
+        <p className="text-sm leading-relaxed text-muted">
+          El pago del folio {proposal.folio} ya quedó confirmado por {providerLabel(proposal.payment.paidProvider)}.
+        </p>
+        {proposal.payment.calendarUrl ? (
+          <a
+            href={proposal.payment.calendarUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-5 inline-flex rounded-full bg-yellow px-6 py-3 font-semibold text-ink"
+          >
+            Agendar sesión
+          </a>
+        ) : (
+          <p className="mt-5 text-sm leading-relaxed text-paper/80">
+            El siguiente paso es contrato, coordinación y liberación de fecha por parte de Oz Creativo.
+          </p>
+        )}
+      </Panel>
+    )
+  }
+
+  const paymentHint = new URLSearchParams(window.location.search).get('payment') || ''
+  const isReturningFromProvider = paymentHint.includes('success') || paymentHint === 'pending'
+
+  async function startCheckout(provider: PaymentProvider) {
+    setPaymentError('')
+    setPendingProvider(provider)
+
+    try {
+      const response = await fetch('/api/payments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          folio: proposal.folio,
+          token,
+          provider,
+        }),
+      })
+      const result = (await response.json()) as PaymentCreateResponse
+
+      if (!response.ok || !result.ok || !result.checkoutUrl) {
+        throw new Error(result.message || 'No se pudo abrir el checkout.')
+      }
+
+      window.location.assign(result.checkoutUrl)
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : 'No se pudo abrir el checkout.')
+      setPendingProvider('')
+    }
+  }
+
   return (
     <Panel title="Forma de pago">
       <p className="text-sm leading-relaxed text-muted">{proposal.payment.note}</p>
-      <div className="mt-5 space-y-3">
-        <CopyRow label="Banco" value={proposal.payment.bank} />
-        <CopyRow label="Titular" value={proposal.payment.beneficiary} />
-        <CopyRow label="CLABE" value={proposal.payment.clabe} />
-        <CopyRow label="Cuenta" value={proposal.payment.account} />
-        <CopyRow label="Referencia" value={proposal.payment.reference} highlight />
+      {isReturningFromProvider ? (
+        <p className="mt-4 border border-yellow/30 bg-yellow/10 px-4 py-3 text-sm leading-relaxed text-paper">
+          Estamos confirmando el pago con el proveedor. Si ya quedó aprobado, actualiza esta página en unos segundos.
+        </p>
+      ) : null}
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        {proposal.payment.checkoutOptions.map((option) => (
+          <button
+            key={option.provider}
+            type="button"
+            onClick={() => startCheckout(option.provider)}
+            disabled={pendingProvider !== ''}
+            className="rounded-full border border-yellow/50 bg-yellow px-5 py-3 text-sm font-semibold text-ink transition hover:bg-paper disabled:cursor-wait disabled:opacity-60"
+          >
+            {pendingProvider === option.provider
+              ? 'Abriendo checkout...'
+              : `Pagar con ${providerLabel(option.provider)}`}
+            <span className="block text-xs font-medium text-ink/70">
+              {formatCheckoutAmount(option.amount.value, option.amount.currency)}
+            </span>
+          </button>
+        ))}
       </div>
-      <a
-        href={proposal.payment.whatsappUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-6 inline-flex rounded-full bg-yellow px-6 py-3 font-semibold text-ink"
-      >
-        Enviar comprobante por WhatsApp
-      </a>
+      {paymentError ? <p className="mt-4 text-sm text-yellow">{paymentError}</p> : null}
     </Panel>
   )
 }
@@ -239,30 +320,6 @@ function DataRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function CopyRow({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string
-  value: string
-  highlight?: boolean
-}) {
-  return (
-    <div className="flex flex-col gap-2 border border-white/10 bg-ink/70 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-muted">{label}</span>
-      <span className={`font-semibold ${highlight ? 'text-yellow' : 'text-paper'}`}>{value}</span>
-      <button
-        type="button"
-        onClick={() => navigator.clipboard?.writeText(value)}
-        className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-semibold text-paper hover:border-yellow hover:text-yellow"
-      >
-        Copiar
-      </button>
-    </div>
-  )
-}
-
 function BulletList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-3 text-sm leading-relaxed text-muted">
@@ -273,6 +330,20 @@ function BulletList({ items }: { items: string[] }) {
       ))}
     </ul>
   )
+}
+
+function providerLabel(provider?: PaymentProvider): string {
+  if (provider === 'mercado-pago') return 'Mercado Pago'
+  if (provider === 'stripe') return 'Stripe'
+  return 'el proveedor de pago'
+}
+
+function formatCheckoutAmount(value: number, currency: 'MXN' | 'USD'): string {
+  return new Intl.NumberFormat(currency === 'MXN' ? 'es-MX' : 'en-US', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value)
 }
 
 function formatDate(value: string): string {

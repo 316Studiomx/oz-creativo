@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   buildPrivateProposal,
+  proposalLookupStorageKey,
   proposalStorageKey,
   type LeadForProposal,
 } from '../netlify/functions/_shared/proposals.mts'
@@ -46,7 +47,23 @@ test('event proposals generate a private URL with the exact travel quote', () =>
   assert.equal(proposal.payment.status, 'enabled')
   if (proposal.payment.status === 'enabled') {
     assert.equal(proposal.payment.reference, proposal.folio)
-    assert.equal(proposal.payment.clabe, '014822605719781690')
+    assert.deepEqual(
+      proposal.payment.checkoutOptions.map((option) => option.provider),
+      ['stripe', 'mercado-pago'],
+    )
+    assert.equal(proposal.payment.checkoutOptions[0].amount.currency, 'MXN')
+  }
+})
+
+test('private proposals no longer expose manual transfer instructions', () => {
+  const proposal = buildPrivateProposal(baseLead, fixedOptions)
+
+  assert.equal(proposal.payment.status, 'enabled')
+  if (proposal.payment.status === 'enabled') {
+    assert.equal('clabe' in proposal.payment, false)
+    assert.equal('account' in proposal.payment, false)
+    assert.equal('bank' in proposal.payment, false)
+    assert.equal('whatsappUrl' in proposal.payment, false)
   }
 })
 
@@ -87,5 +104,12 @@ test('proposal storage key is scoped by folio and token', () => {
   assert.equal(
     proposalStorageKey('OZ-20260624-ABCDEF', 'abcdef123456'),
     'proposals/OZ-20260624-ABCDEF-abcdef123456.json',
+  )
+})
+
+test('proposal lookup key is scoped by folio for payment webhooks', () => {
+  assert.equal(
+    proposalLookupStorageKey('OZ-20260624-ABCDEF'),
+    'proposal-index/OZ-20260624-ABCDEF.json',
   )
 })
