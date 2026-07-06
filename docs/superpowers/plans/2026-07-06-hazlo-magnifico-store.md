@@ -35,7 +35,7 @@ Database:
 - Create `db/schema.ts`: Drizzle tables and enums.
 - Create `db/index.ts`: Netlify Database Drizzle client.
 - Create `db/seed.mts`: seed product, inventory, discount rules, and optional dev coupon.
-- Create `netlify/database/migrations/*`: generated SQL migration.
+- Create `netlify/database/migrations/*/migration.sql`: Netlify Database SQL migration directory.
 
 Shared backend modules:
 
@@ -110,8 +110,8 @@ Tests:
 Run:
 
 ```bash
-npm install @netlify/database drizzle-orm@beta stripe resend zod bcryptjs
-npm install -D drizzle-kit@beta
+npm install @netlify/database drizzle-orm pg stripe resend zod bcryptjs
+npm install -D drizzle-kit @types/pg
 ```
 
 Expected: `package.json` and `package-lock.json` include the new packages.
@@ -539,7 +539,7 @@ git commit -m "Add book store pricing and parcel logic"
 - Create: `db/schema.ts`
 - Create: `db/index.ts`
 - Create: `db/seed.mts`
-- Create: `netlify/database/migrations/*`
+- Create: `netlify/database/migrations/20260706000000_create_hazlo_magnifico_store/migration.sql`
 
 - [ ] **Step 1: Create schema**
 
@@ -793,11 +793,15 @@ export const adminSessions = pgTable('admin_sessions', {
 Create `db/index.ts`:
 
 ```ts
-import { drizzle } from 'drizzle-orm/netlify-db'
+import { getConnectionString } from '@netlify/database'
+import { drizzle } from 'drizzle-orm/node-postgres'
+import pg from 'pg'
 
 import * as schema from './schema'
 
-export const db = drizzle({ schema })
+const pool = new pg.Pool({ connectionString: getConnectionString() })
+
+export const db = drizzle(pool, { schema })
 export { schema }
 ```
 
@@ -875,15 +879,9 @@ await db.insert(discountRules).values([
 console.log('Hazlo Magnifico store seed complete.')
 ```
 
-- [ ] **Step 4: Generate migration**
+- [ ] **Step 4: Generate Netlify Database migration**
 
-Run:
-
-```bash
-npm run db:generate
-```
-
-Expected: a new SQL migration appears under `netlify/database/migrations`.
+Create `netlify/database/migrations/20260706000000_create_hazlo_magnifico_store/migration.sql` manually from the Drizzle schema. Netlify Database expects each migration in its own directory named with a sortable timestamp and a lowercase slug, with the SQL file named `migration.sql`.
 
 - [ ] **Step 5: Run typecheck**
 
@@ -2800,8 +2798,8 @@ Include support email `oz@expocuspide.com` and invoicing instruction.
 
 Add a `Hazlo Magnífico Store` section to `README.md` covering:
 
-- Netlify Database setup with `netlify database init`,
-- `npm run db:generate`,
+- Netlify Database automatic provisioning through `@netlify/database`,
+- migration directory format under `netlify/database/migrations/<timestamp_slug>/migration.sql`,
 - `npm run db:seed`,
 - Stripe webhook `/api/book/webhooks/stripe`,
 - Resend env vars,
@@ -2838,15 +2836,16 @@ git commit -m "Finalize book store status and documentation"
 - Skydropx credentials configured.
 - Resend verified sender configured.
 
-- [ ] **Step 1: Provision Netlify Database**
+- [ ] **Step 1: Verify Netlify Database provisioning path**
 
-Run through Netlify:
+Do not create or commit a manual `DATABASE_URL`. Netlify Database is provisioned automatically when `@netlify/database` is installed and the site runs on Netlify. Confirm that the deploy includes:
 
-```bash
-netlify database init
+```text
+@netlify/database installed
+netlify/database/migrations/20260706000000_create_hazlo_magnifico_store/migration.sql present
 ```
 
-Expected: Netlify Database is linked to the site and migrations directory is recognized.
+Expected: migrations are applied by Netlify during deploy and functions use `getConnectionString()` from `@netlify/database`.
 
 - [ ] **Step 2: Configure production environment**
 
