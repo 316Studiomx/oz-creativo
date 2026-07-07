@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 import { db } from './index.ts'
 import { discountRules, inventory, products } from './schema.ts'
@@ -57,10 +57,15 @@ if (!existingInventory) {
   })
 }
 
-await db.delete(discountRules)
 await db.insert(discountRules).values([
   { minQuantity: 5, maxQuantity: 9, percent: 10, active: true },
   { minQuantity: 10, maxQuantity: 10, percent: 20, active: true },
-])
+]).onConflictDoUpdate({
+  target: [discountRules.minQuantity, discountRules.maxQuantity],
+  set: {
+    percent: sql`excluded.percent`,
+    active: sql`excluded.active`,
+  },
+})
 
 console.log('Hazlo Magnifico store seed complete.')
