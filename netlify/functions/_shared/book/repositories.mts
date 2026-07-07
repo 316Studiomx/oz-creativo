@@ -115,6 +115,11 @@ export type PublicOrderStatus = {
   trackingUrl?: string
 }
 
+export type AdminSession = {
+  email: string
+  expiresAt: Date
+}
+
 type ShippingAddressForDisplay = {
   street: string
   exteriorNumber: string
@@ -377,6 +382,53 @@ export async function attachStripeSession(orderId: number, sessionId: string) {
 export async function listRecentOrders(limit = 50) {
   const { db, schema } = await getDbModule()
   return db.select().from(schema.orders).orderBy(desc(schema.orders.createdAt)).limit(limit)
+}
+
+export async function createAdminSession(email: string, tokenHash: string, expiresAt: Date) {
+  const { db, schema } = await getDbModule()
+  const [session] = await db
+    .insert(schema.adminSessions)
+    .values({
+      email: email.trim().toLowerCase(),
+      tokenHash,
+      expiresAt,
+    })
+    .returning({
+      email: schema.adminSessions.email,
+      expiresAt: schema.adminSessions.expiresAt,
+    })
+
+  return session ?? null
+}
+
+export async function findValidAdminSession(
+  tokenHash: string,
+  now = new Date(),
+): Promise<AdminSession | null> {
+  if (!tokenHash) {
+    return null
+  }
+
+  const { db, schema } = await getDbModule()
+  const [session] = await db
+    .select({
+      email: schema.adminSessions.email,
+      expiresAt: schema.adminSessions.expiresAt,
+    })
+    .from(schema.adminSessions)
+    .where(and(eq(schema.adminSessions.tokenHash, tokenHash), gte(schema.adminSessions.expiresAt, now)))
+    .limit(1)
+
+  return session ?? null
+}
+
+export async function deleteAdminSession(tokenHash: string) {
+  if (!tokenHash) {
+    return
+  }
+
+  const { db, schema } = await getDbModule()
+  await db.delete(schema.adminSessions).where(eq(schema.adminSessions.tokenHash, tokenHash))
 }
 
 export async function createInternationalQuoteLead(input: InternationalQuoteLeadInput) {

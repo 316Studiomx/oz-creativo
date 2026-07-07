@@ -9,6 +9,7 @@ import { Grain } from './components/Grain'
 import { HeroBackdropFallback } from './components/HeroBackdropFallback'
 import { LeadFormModal } from './components/LeadFormModal'
 import { ProposalPage } from './components/ProposalPage'
+import { AdminApp } from './admin/AdminApp'
 import { BookStorePage } from './book/BookStorePage'
 import { ThankYouPage } from './book/ThankYouPage'
 import { OrderStatusPage } from './book/OrderStatusPage'
@@ -30,8 +31,18 @@ gsap.registerPlugin(ScrollTrigger)
 const Scene = lazy(() => import('./three/Scene'))
 
 export default function App() {
-  const bookRoute = getBookRoute(window.location.pathname)
-  const proposalRoute = getProposalRoute(window.location.pathname)
+  const pathname = window.location.pathname
+
+  if (isAdminRoute(pathname)) {
+    return <AdminApp />
+  }
+
+  return <PublicApp pathname={pathname} />
+}
+
+function PublicApp({ pathname }: { pathname: string }) {
+  const bookRoute = getBookRoute(pathname)
+  const proposalRoute = getProposalRoute(pathname)
   const reduced = useReducedMotion()
   const isMobile = useIsMobile()
   const use3D = !isMobile // reduced-motion still gets a calm 3D version
@@ -154,6 +165,10 @@ export default function App() {
       </main>
     </>
   )
+}
+
+function isAdminRoute(pathname: string): boolean {
+  return pathname === '/admin' || pathname.startsWith('/admin/')
 }
 
 function getBookRoute(pathname: string):
