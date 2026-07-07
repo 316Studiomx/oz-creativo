@@ -23,6 +23,10 @@ const adminApiFiles = [
     path: 'netlify/functions/book-admin-emails.mts',
     routes: ['/api/book/admin/emails', '/api/book/admin/emails/:id/retry'],
   },
+  {
+    path: 'netlify/functions/book-admin-reviews.mts',
+    routes: ['/api/book/admin/reviews'],
+  },
 ]
 
 const adminUiFiles = [
@@ -32,6 +36,7 @@ const adminUiFiles = [
   'src/admin/AdminCoupons.tsx',
   'src/admin/AdminInternationalQuotes.tsx',
   'src/admin/AdminEmails.tsx',
+  'src/admin/AdminReviews.tsx',
 ]
 
 test('admin management API files declare protected endpoint paths', () => {
@@ -75,6 +80,9 @@ test('admin repository helpers list only safe management data', () => {
     'updateInternationalQuoteLead',
     'listEmailEvents',
     'retryEmailEvent',
+    'listBookReviews',
+    'listPublicBookReviews',
+    'createBookReview',
   ]) {
     assert.equal(source.includes(`export async function ${exportName}`), true, `${exportName} missing`)
   }
@@ -87,7 +95,7 @@ test('admin repository helpers list only safe management data', () => {
 test('admin app exposes all management tabs and components', () => {
   const appSource = readFileSync('src/admin/AdminApp.tsx', 'utf8')
 
-  for (const tab of ['dashboard', 'orders', 'inventory', 'coupons', 'international', 'emails']) {
+  for (const tab of ['dashboard', 'orders', 'inventory', 'coupons', 'international', 'emails', 'reviews']) {
     assert.equal(appSource.includes(`'${tab}'`), true, `missing ${tab} tab`)
   }
 
@@ -98,6 +106,7 @@ test('admin app exposes all management tabs and components', () => {
     'AdminCoupons',
     'AdminInternationalQuotes',
     'AdminEmails',
+    'AdminReviews',
   ]) {
     assert.equal(appSource.includes(component), true, `missing ${component}`)
   }
@@ -124,6 +133,7 @@ test('admin management screens fetch with credentials include and expected endpo
     true,
   )
   assert.equal(readFileSync('src/admin/AdminEmails.tsx', 'utf8').includes('/api/book/admin/emails'), true)
+  assert.equal(readFileSync('src/admin/AdminReviews.tsx', 'utf8').includes('/api/book/admin/reviews'), true)
 })
 
 test('admin screens expose operational management fields', () => {
@@ -172,6 +182,11 @@ test('admin screens expose operational management fields', () => {
   const emailsSource = readFileSync('src/admin/AdminEmails.tsx', 'utf8')
   assert.equal(emailsSource.includes('failed'), true)
   assert.equal(emailsSource.includes('retry'), true)
+
+  const reviewsSource = readFileSync('src/admin/AdminReviews.tsx', 'utf8')
+  for (const label of ['Autor', 'Cargo / rol', 'Reseña', 'Visible', 'Agregar reseña']) {
+    assert.equal(reviewsSource.includes(label), true, `reviews missing ${label}`)
+  }
 })
 
 test('admin orders renders shipment URLs only after safe http validation', () => {

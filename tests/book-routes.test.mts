@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import test from 'node:test'
 
+import { BOOK_STORE_COPY } from '../src/book/bookCopy.ts'
+
 const appSource = readFileSync('src/App.tsx', 'utf8')
 const repositoriesSource = readFileSync('netlify/functions/_shared/book/repositories.mts', 'utf8')
 
@@ -40,11 +42,22 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   assert.equal(pageSource.includes('Anterior imagen del libro'), true)
   assert.equal(pageSource.includes('Siguiente imagen del libro'), true)
   assert.equal(pageSource.includes('Fotos del libro'), false)
+  assert.equal(pageSource.includes('BOOK_STORE_COPY.details.map'), false)
   assert.equal(pageSource.includes('ProductStorySection'), true)
   assert.equal(pageSource.includes('BookReviewsSection'), true)
   assert.equal(pageSource.includes('BookFaqSection'), true)
   assert.equal(pageSource.includes('ForYouIfSection'), true)
   assert.equal(pageSource.includes('AuthorBioSection'), true)
+  assert.ok(pageSource.indexOf('BOOK_STORE_COPY.longSummary.title') < pageSource.indexOf('BOOK_STORE_COPY.specs.map'))
+  assert.ok(pageSource.indexOf('BOOK_STORE_COPY.specs.map') < pageSource.indexOf('function BookReviewsSection'))
+  assert.equal(pageSource.includes('BOOK_STORE_COPY.author.ctaLabel'), true)
+  assert.equal(pageSource.includes('href={BOOK_STORE_COPY.author.ctaHref}'), true)
+  assert.equal(BOOK_STORE_COPY.author.ctaLabel, 'Saber más')
+  assert.equal(BOOK_STORE_COPY.author.ctaHref, '/')
+  assert.equal(BOOK_STORE_COPY.learn.length, 3)
+  assert.equal(BOOK_STORE_COPY.forYouIf.length, 4)
+  assert.equal(BOOK_STORE_COPY.faq.length, 8)
+  assert.equal(BOOK_STORE_COPY.faq.some((item) => item.question === '¿Cuánto cuesta?'), false)
   assert.equal(formSource.includes('$599'), true)
   assert.equal(formSource.includes('$499'), true)
   assert.equal(formSource.includes('03:16'), true)
@@ -70,12 +83,10 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
 
   for (const question of [
     '¿El libro es físico o digital?',
-    '¿Cuánto cuesta?',
     '¿Hay descuentos por volumen?',
     '¿Puedo usar cupón?',
-    '¿El libro puede ir firmado o dedicado?',
+    '¿Cuánto tarda en llegar?',
     '¿Puedo pedir factura?',
-    '¿Cómo recibo mi guía?',
     '¿Qué pasa si pongo mal mi dirección?',
   ]) {
     assert.equal(copySource.includes(question), true)
@@ -129,16 +140,21 @@ test('public legal and order routes are declared for the book flow', () => {
 test('book public API endpoints exist and use safe repository helpers', () => {
   const orderStatusSource = readFileSync('netlify/functions/book-order-status.mts', 'utf8')
   const internationalSource = readFileSync('netlify/functions/book-international-quotes.mts', 'utf8')
+  const reviewsSource = readFileSync('netlify/functions/book-reviews.mts', 'utf8')
 
   assert.equal(existsSync('netlify/functions/book-order-status.mts'), true)
   assert.equal(existsSync('netlify/functions/book-international-quotes.mts'), true)
+  assert.equal(existsSync('netlify/functions/book-reviews.mts'), true)
   assert.equal(orderStatusSource.includes("path: '/api/book/orders/:orderNumber'"), true)
   assert.equal(orderStatusSource.includes('findPublicOrderStatus'), true)
   assert.equal(internationalSource.includes("path: '/api/book/international-quotes'"), true)
   assert.equal(internationalSource.includes('internationalQuoteSchema'), true)
   assert.equal(internationalSource.includes('createInternationalQuoteLead'), true)
+  assert.equal(reviewsSource.includes("path: '/api/book/reviews'"), true)
+  assert.equal(reviewsSource.includes('listPublicBookReviews'), true)
   assert.equal(repositoriesSource.includes('findPublicOrderStatus'), true)
   assert.equal(repositoriesSource.includes('createInternationalQuoteLead'), true)
+  assert.equal(repositoriesSource.includes('listPublicBookReviews'), true)
 })
 
 test('public book flow sanitizes redirect and tracking URLs', () => {

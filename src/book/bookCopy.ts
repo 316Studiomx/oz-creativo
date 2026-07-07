@@ -48,11 +48,8 @@ export const BOOK_STORE_COPY = {
   learn: [
     'Dar el primer paso aunque no te sientas “listo”, aplicando el secreto del Producto Mínimo Viable a tu vida y tu negocio.',
     'Convertir pequeñas acciones diarias en resultados enormes con el poder del 1% y el efecto compuesto.',
-    'Diferenciarte en un mercado saturado y descubrir eso que solo tú puedes ofrecer.',
-    'Hacer que tus ideas sean Mágicas, Magnas y Magnéticas: que aporten valor, piensen en grande y atraigan a las personas correctas.',
-    'Eliminar excusas que te frenan y rodearte de las cinco personas que definen tu destino.',
+    'Diferenciarte en un mercado saturado y convertir tus ideas en algo mágico, magno y magnético.',
   ],
-  details: ['Libro físico', 'Primera edición', '108 páginas', 'Envío gratis en México'],
   longSummary: {
     eyebrow: 'Resumen largo',
     title: 'El libro que vino a sacarte del “algún día”',
@@ -70,7 +67,6 @@ export const BOOK_STORE_COPY = {
     'Estás cansado de esperar el momento perfecto.',
     'Sientes que tienes algo grande dentro de ti.',
     'Quieres unir fe, propósito y acción.',
-    'Quieres construir una vida con sentido.',
   ],
   specsTitle: 'Características',
   specs: [
@@ -106,6 +102,8 @@ export const BOOK_STORE_COPY = {
       'Durante más de 12 años ha ayudado a empresas y marcas personales a comunicar mejor, vender más y construir proyectos con propósito. Su enfoque combina estrategia, creatividad y experiencia práctica para ayudar a emprendedores a dejar de improvisar, entender mejor a su cliente ideal y comunicar una propuesta de valor clara.',
       'En Hazlo Magnífico, Oz une su visión de emprendimiento con una convicción profunda: no se trata de hacerlo perfecto, sino de empezar con lo que tienes, avanzar con propósito y construir algo que trascienda.',
     ],
+    ctaLabel: 'Saber más',
+    ctaHref: '/',
   },
   faqTitle: 'Preguntas frecuentes',
   faq: [
@@ -114,16 +112,8 @@ export const BOOK_STORE_COPY = {
       answer: 'Es un libro físico. La compra en esta página corresponde a la edición impresa.',
     },
     {
-      question: '¿Cuánto cuesta?',
-      answer: 'El precio actual del libro es de $499 MXN.',
-    },
-    {
       question: '¿El envío está incluido?',
       answer: 'Sí. El envío nacional dentro de México está incluido en la compra.',
-    },
-    {
-      question: '¿Puedo comprar más de un libro?',
-      answer: 'Sí. Puedes comprar de 1 a 10 libros en el checkout nacional.',
     },
     {
       question: '¿Hay descuentos por volumen?',
@@ -139,29 +129,14 @@ export const BOOK_STORE_COPY = {
         'Solicita cotización internacional. Revisamos ciudad, país, código postal y cantidad antes de cobrar.',
     },
     {
-      question: '¿Hacen envíos fuera de México?',
-      answer:
-        'Sí, pero los envíos internacionales se cotizan antes de cobrar para calcular correctamente la logística.',
-    },
-    {
-      question: '¿El libro puede ir firmado o dedicado?',
-      answer:
-        'Por ahora no ofrecemos firma ni dedicatoria personalizada en el checkout automático.',
-    },
-    {
       question: '¿Cuánto tarda en llegar?',
       answer:
-        'El tiempo depende de la paquetería y la ciudad de destino. Cuando tu guía esté lista recibirás el rastreo.',
+        'El tiempo depende de la paquetería y la ciudad de destino. Cuando tu guía esté lista recibirás el rastreo por correo.',
     },
     {
       question: '¿Puedo pedir factura?',
       answer:
         'Sí. Después de tu compra puedes solicitar factura con los datos fiscales correspondientes.',
-    },
-    {
-      question: '¿Cómo recibo mi guía?',
-      answer:
-        'La recibirás por correo cuando el pedido esté preparado y la guía haya sido generada.',
     },
     {
       question: '¿Qué pasa si pongo mal mi dirección?',

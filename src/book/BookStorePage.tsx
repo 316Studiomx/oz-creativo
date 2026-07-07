@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { BookCheckoutForm } from './BookCheckoutForm'
 import { InternationalQuoteForm } from './InternationalQuoteForm'
@@ -27,17 +27,6 @@ export function BookStorePage() {
           <div className="mt-6 grid max-w-2xl gap-1 text-base leading-relaxed text-muted md:text-lg">
             {BOOK_STORE_COPY.heroLines.map((line) => (
               <p key={line}>{line}</p>
-            ))}
-          </div>
-
-          <div className="mt-8 grid max-w-full grid-cols-1 gap-3 sm:flex sm:flex-wrap">
-            {BOOK_STORE_COPY.details.map((detail) => (
-              <span
-                key={detail}
-                className="min-w-0 max-w-full break-words rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-paper/85"
-              >
-                {detail}
-              </span>
             ))}
           </div>
 
@@ -197,13 +186,31 @@ function ProductStorySection() {
   return (
     <section className="container-x border-t border-white/10 py-16 md:py-20">
       <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-        <div>
+        <div className="grid gap-8">
           <p className="text-xs uppercase tracking-[0.3em] text-yellow">
             {BOOK_STORE_COPY.longSummary.eyebrow}
           </p>
           <h2 className="mt-4 font-display text-4xl font-semibold uppercase leading-none text-paper [letter-spacing:0] md:text-6xl">
             {BOOK_STORE_COPY.longSummary.title}
           </h2>
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-yellow">
+              {BOOK_STORE_COPY.specsTitle}
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {BOOK_STORE_COPY.specs.map((spec) => (
+                <div
+                  key={spec.label}
+                  className="grid gap-1 border-l border-yellow bg-white/[0.03] px-5 py-4"
+                >
+                  <span className="text-xs uppercase text-muted [letter-spacing:0]">
+                    {spec.label}
+                  </span>
+                  <strong className="text-base font-semibold text-paper">{spec.value}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="grid gap-6">
           {BOOK_STORE_COPY.longSummary.body.map((paragraph) => (
@@ -213,32 +220,39 @@ function ProductStorySection() {
           ))}
         </div>
       </div>
-
-      <div className="mt-12">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-yellow">
-            {BOOK_STORE_COPY.specsTitle}
-          </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {BOOK_STORE_COPY.specs.map((spec) => (
-              <div
-                key={spec.label}
-                className="grid gap-1 border-l border-yellow bg-white/[0.03] px-5 py-4"
-              >
-                <span className="text-xs uppercase text-muted [letter-spacing:0]">
-                  {spec.label}
-                </span>
-                <strong className="text-base font-semibold text-paper">{spec.value}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </section>
   )
 }
 
+type BookReview = {
+  quote: string
+  author: string
+  role: string
+}
+
 function BookReviewsSection() {
+  const [extraReviews, setExtraReviews] = useState<BookReview[]>([])
+
+  useEffect(() => {
+    let active = true
+
+    fetch('/api/book/reviews')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { reviews?: BookReview[] } | null) => {
+        if (!active || !payload?.reviews) return
+        setExtraReviews(payload.reviews)
+      })
+      .catch(() => {
+        if (active) setExtraReviews([])
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const reviews = [...BOOK_STORE_COPY.reviews, ...extraReviews]
+
   return (
     <section className="container-x border-t border-white/10 py-16 md:py-20">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -255,9 +269,9 @@ function BookReviewsSection() {
       </div>
 
       <div className="mt-10 grid gap-4 md:grid-cols-2">
-        {BOOK_STORE_COPY.reviews.map((review) => (
+        {reviews.map((review) => (
           <article
-            key={review.author}
+            key={`${review.author}-${review.quote}`}
             className="flex min-h-64 flex-col justify-between rounded-lg border border-white/10 bg-white/[0.03] p-6"
           >
             <p className="text-lg leading-relaxed text-paper">“{review.quote}”</p>
@@ -320,6 +334,12 @@ function AuthorBioSection() {
               <p key={paragraph}>{paragraph}</p>
             ))}
           </div>
+          <a
+            href={BOOK_STORE_COPY.author.ctaHref}
+            className="mt-7 inline-flex w-full items-center justify-center rounded bg-yellow px-5 py-3 text-sm font-bold uppercase text-ink transition hover:bg-yellow-warm sm:w-auto"
+          >
+            {BOOK_STORE_COPY.author.ctaLabel}
+          </a>
         </div>
       </div>
     </section>

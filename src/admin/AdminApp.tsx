@@ -7,6 +7,7 @@ import { AdminInternationalQuotes } from './AdminInternationalQuotes'
 import { AdminInventory } from './AdminInventory'
 import { AdminLogin } from './AdminLogin'
 import { AdminOrders } from './AdminOrders'
+import { AdminReviews } from './AdminReviews'
 
 type SessionState = {
   ready: boolean
@@ -14,7 +15,7 @@ type SessionState = {
   email: string | null
 }
 
-const tabs = ['dashboard', 'orders', 'inventory', 'coupons', 'international', 'emails'] as const
+const tabs = ['dashboard', 'orders', 'inventory', 'coupons', 'international', 'emails', 'reviews'] as const
 
 type AdminTab = (typeof tabs)[number]
 
@@ -30,6 +31,7 @@ const tabLabels: Record<AdminTab, string> = {
   coupons: 'Cupones',
   international: 'Internacional',
   emails: 'Emails',
+  reviews: 'Reseñas',
 }
 
 export function AdminApp() {
@@ -146,6 +148,7 @@ export function AdminApp() {
           {activeTab === 'coupons' ? <AdminCoupons /> : null}
           {activeTab === 'international' ? <AdminInternationalQuotes /> : null}
           {activeTab === 'emails' ? <AdminEmails /> : null}
+          {activeTab === 'reviews' ? <AdminReviews /> : null}
         </section>
       </div>
     </main>

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, sql } from 'drizzle-orm'
 
 import { BOOK_SKU } from './constants.mts'
 import type { BookTotals, CouponForTotals } from './pricing.mts'
@@ -148,6 +148,14 @@ export type AdminCouponMutationInput = {
 
 export type AdminCouponUpdateInput = Partial<AdminCouponMutationInput> & {
   id: number
+}
+
+export type AdminBookReviewMutationInput = {
+  author: string
+  role: string
+  quote: string
+  active: boolean
+  sortOrder: number
 }
 
 export type InternationalLeadStatus =
@@ -769,6 +777,55 @@ export async function updateCoupon(input: AdminCouponUpdateInput) {
     .returning()
 
   return coupon ?? null
+}
+
+export async function listBookReviews() {
+  const { db, schema } = await getDbModule()
+  return db
+    .select({
+      id: schema.bookReviews.id,
+      author: schema.bookReviews.author,
+      role: schema.bookReviews.role,
+      quote: schema.bookReviews.quote,
+      active: schema.bookReviews.active,
+      sortOrder: schema.bookReviews.sortOrder,
+      createdAt: schema.bookReviews.createdAt,
+      updatedAt: schema.bookReviews.updatedAt,
+    })
+    .from(schema.bookReviews)
+    .orderBy(asc(schema.bookReviews.sortOrder), desc(schema.bookReviews.createdAt))
+}
+
+export async function listPublicBookReviews() {
+  const { db, schema } = await getDbModule()
+  return db
+    .select({
+      author: schema.bookReviews.author,
+      role: schema.bookReviews.role,
+      quote: schema.bookReviews.quote,
+    })
+    .from(schema.bookReviews)
+    .where(eq(schema.bookReviews.active, true))
+    .orderBy(asc(schema.bookReviews.sortOrder), desc(schema.bookReviews.createdAt))
+}
+
+export async function createBookReview(input: AdminBookReviewMutationInput) {
+  const { db, schema } = await getDbModule()
+  const now = new Date()
+  const [review] = await db
+    .insert(schema.bookReviews)
+    .values({
+      author: input.author,
+      role: input.role,
+      quote: input.quote,
+      active: input.active,
+      sortOrder: input.sortOrder,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+
+  return review ?? null
 }
 
 export async function listInternationalQuoteLeads() {

@@ -240,6 +240,20 @@ export const emailEvents = pgTable('email_events', {
   relatedOrderIdx: index('email_events_related_order_id_idx').on(table.relatedOrderId),
 }))
 
+export const bookReviews = pgTable('book_reviews', {
+  id: serial('id').primaryKey(),
+  author: text('author').notNull(),
+  role: text('role').notNull(),
+  quote: text('quote').notNull(),
+  active: boolean('active').notNull().default(true),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  activeSortIdx: index('book_reviews_active_sort_idx').on(table.active, table.sortOrder),
+  createdAtIdx: index('book_reviews_created_at_idx').on(table.createdAt),
+}))
+
 export const processedStripeEvents = pgTable('processed_stripe_events', {
   id: serial('id').primaryKey(),
   stripeEventId: text('stripe_event_id').notNull().unique(),
