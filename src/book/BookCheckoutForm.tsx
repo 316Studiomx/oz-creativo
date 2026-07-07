@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 
 import { postJson } from './api'
 import { BOOK_STORE_COPY } from './bookCopy'
@@ -62,6 +62,9 @@ const INITIAL_FORM: CheckoutFormState = {
   references: '',
 }
 
+const INITIAL_COUNTDOWN_SECONDS = 3 * 60 + 16
+const INITIAL_COUNTDOWN_LABEL = '03:16'
+
 export function BookCheckoutForm() {
   const [form, setForm] = useState<CheckoutFormState>(INITIAL_FORM)
   const [status, setStatus] = useState<'idle' | 'submitting'>('idle')
@@ -71,6 +74,7 @@ export function BookCheckoutForm() {
   )
   const [couponMessage, setCouponMessage] = useState<string | null>(null)
   const [couponTotals, setCouponTotals] = useState<BookTotals | null>(null)
+  const [countdownSeconds, setCountdownSeconds] = useState(INITIAL_COUNTDOWN_SECONDS)
 
   const quantity = clampQuantity(form.quantity)
   const fallbackTotals = useMemo(
@@ -84,6 +88,15 @@ export function BookCheckoutForm() {
       ? couponTotals
       : null
   const displayedTotals = activeCouponTotals || fallbackTotals
+  const countdownLabel = formatCountdown(countdownSeconds)
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setCountdownSeconds((current) => Math.max(0, current - 1))
+    }, 1000)
+
+    return () => window.clearInterval(interval)
+  }, [])
 
   const updateField = (field: keyof CheckoutFormState, value: string | number) => {
     setForm((current) => ({ ...current, [field]: value }))
@@ -204,8 +217,24 @@ export function BookCheckoutForm() {
             Envío gratis dentro de México. Pago seguro por Stripe.
           </p>
         </div>
-        <div className="rounded-lg border border-yellow/35 bg-yellow/10 px-4 py-3 text-sm font-semibold text-yellow">
-          Envío gratis dentro de México
+        <div className="grid gap-3 sm:min-w-[184px]">
+          <div className="rounded-lg border border-yellow/35 bg-yellow/10 px-4 py-3 text-sm font-semibold text-yellow">
+            Envío gratis dentro de México
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase text-muted [letter-spacing:0]">
+              Precio especial termina en
+            </p>
+            <div className="mt-2 flex items-end justify-between gap-3">
+              <strong className="font-display text-3xl leading-none text-yellow [letter-spacing:0]">
+                {countdownLabel || INITIAL_COUNTDOWN_LABEL}
+              </strong>
+              <div className="text-right leading-tight">
+                <span className="block text-xs text-muted line-through">$599</span>
+                <span className="block text-sm font-bold text-paper">$499</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -497,6 +526,13 @@ function formatMoney(cents: number): string {
     style: 'currency',
     currency: 'MXN',
   }).format(cents / 100)
+}
+
+function formatCountdown(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.trunc(seconds))
+  const minutes = Math.floor(safeSeconds / 60)
+  const remainingSeconds = safeSeconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
 }
 
 function safeCheckoutUrl(value: string): string | null {

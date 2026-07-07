@@ -78,6 +78,19 @@ export function InternationalQuoteForm() {
             Por ahora las compras fuera de México se cotizan manualmente para confirmar costo,
             tiempos y disponibilidad antes del pago.
           </p>
+          <div className="mt-6 flex max-w-xl flex-wrap gap-2">
+            {BOOK_STORE_COPY.commonInternationalDestinations.map((destination) => (
+              <span
+                key={destination.country}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-paper/90"
+              >
+                <span aria-hidden="true" className="text-lg leading-none">
+                  {destination.flag}
+                </span>
+                {destination.country}
+              </span>
+            ))}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="grid gap-4 border border-white/10 bg-white/[0.03] p-5 md:p-6">

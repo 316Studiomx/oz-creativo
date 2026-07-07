@@ -29,6 +29,48 @@ test('book store page posts to the book checkout endpoint', () => {
   assert.equal(copySource.includes('$499 MXN'), true)
 })
 
+test('book store page exposes urgency, richer product proof, reviews, faq, and flags', () => {
+  const pageSource = readFileSync('src/book/BookStorePage.tsx', 'utf8')
+  const formSource = readFileSync('src/book/BookCheckoutForm.tsx', 'utf8')
+  const copySource = readFileSync('src/book/bookCopy.ts', 'utf8')
+
+  assert.equal(pageSource.includes('PromoTicker'), true)
+  assert.equal(pageSource.includes('ProductStorySection'), true)
+  assert.equal(pageSource.includes('BookReviewsSection'), true)
+  assert.equal(pageSource.includes('BookFaqSection'), true)
+  assert.equal(formSource.includes('$599'), true)
+  assert.equal(formSource.includes('$499'), true)
+  assert.equal(formSource.includes('03:16'), true)
+  assert.match(copySource, /Env[ií]o gratis comprando/i)
+  assert.match(copySource, /Resumen largo/i)
+  assert.match(copySource, /Caracter[ií]sticas/i)
+  assert.match(copySource, /Reseñas/i)
+  assert.match(copySource, /Preguntas frecuentes/i)
+
+  for (const country of [
+    'Estados Unidos',
+    'Colombia',
+    'Argentina',
+    'Guatemala',
+    'Perú',
+    'Ecuador',
+    'Honduras',
+    'El Salvador',
+    'Venezuela',
+  ]) {
+    assert.equal(copySource.includes(country), true)
+  }
+
+  for (const asset of [
+    'public/assets/book/hazlo-magnifico-lectura-oz.jpg',
+    'public/assets/book/hazlo-magnifico-portada-manos.jpg',
+    'public/assets/book/hazlo-magnifico-abierto.jpg',
+    'public/assets/book/hazlo-magnifico-detalle-portada.jpg',
+  ]) {
+    assert.equal(existsSync(asset), true)
+  }
+})
+
 test('public legal and order routes are declared for the book flow', () => {
   const legalSource = readFileSync('src/book/LegalPages.tsx', 'utf8')
   const statusSource = readFileSync('src/book/OrderStatusPage.tsx', 'utf8')
