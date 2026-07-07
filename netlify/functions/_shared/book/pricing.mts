@@ -59,7 +59,7 @@ export function calculateBookTotals(input: {
   let totalDiscountCents = volumeDiscountCents
   let discountLabel: string | null = volumeDiscountCents > 0 ? 'Descuento por volumen' : null
 
-  if (validatedCoupon) {
+  if (validatedCoupon && rawCouponDiscountCents > 0) {
     if (validatedCoupon.stackable) {
       couponDiscountCents = rawCouponDiscountCents
       totalDiscountCents = Math.min(subtotalCents, volumeDiscountCents + couponDiscountCents)
@@ -83,7 +83,8 @@ export function calculateBookTotals(input: {
     subtotalCents,
     volumeDiscountPercent,
     volumeDiscountCents,
-    couponCode: validatedCoupon ? normalizeCouponCode(validatedCoupon.code) : null,
+    couponCode:
+      validatedCoupon && couponDiscountCents > 0 ? normalizeCouponCode(validatedCoupon.code) : null,
     couponDiscountCents,
     totalDiscountCents,
     shippingChargedCents: FREE_MEXICO_SHIPPING_CENTS,

@@ -49,10 +49,46 @@ test('checkout form validates coupon estimates without trusting frontend totals'
   assert.equal(checkoutFormSource.includes('/api/book/coupons/validate'), true)
   assert.equal(checkoutFormSource.includes('Aplicar cupón'), true)
   assert.equal(checkoutFormSource.includes('couponTotals'), true)
+  assert.equal(checkoutFormSource.includes('couponDiscountCents > 0'), true)
   assert.equal(checkoutFormSource.includes('/api/book/checkout/create-session'), true)
   const payloadStart = checkoutFormSource.indexOf('const payload = {')
   const payloadEnd = checkoutFormSource.indexOf('    try {', payloadStart)
   assert.ok(payloadStart >= 0)
   assert.ok(payloadEnd > payloadStart)
   assert.doesNotMatch(checkoutFormSource.slice(payloadStart, payloadEnd), /totalCents\s*:/)
+})
+
+test('paid coupon redemption runs for every Stripe-paid branch', () => {
+  assert.match(repositoriesSource, /async function redeemPaidOrderCoupon\(/)
+
+  const paidReturns = [
+    ...repositoriesSource.matchAll(
+      /return buildMarkOrderPaidByStripeResult\(updatedOrder \?\? order, true\)/g,
+    ),
+  ]
+
+  assert.equal(paidReturns.length, 4)
+
+  for (const match of paidReturns) {
+    const branchSource = repositoriesSource.slice(Math.max(0, match.index - 600), match.index)
+    assert.match(branchSource, /await redeemPaidOrderCoupon\(tx, updatedOrder \?\? order, now\)/)
+  }
+})
+
+test('coupon redemption is guarded by real discount and late limit checks', () => {
+  const helperStart = repositoriesSource.indexOf('async function redeemPaidOrderCoupon')
+  const helperEnd = repositoriesSource.indexOf('function buildMarkOrderPaidByStripeResult', helperStart)
+  assert.ok(helperStart >= 0)
+  assert.ok(helperEnd > helperStart)
+
+  const helperSource = repositoriesSource.slice(helperStart, helperEnd)
+
+  assert.match(helperSource, /couponDiscountCents\s*<=\s*0/)
+  assert.match(helperSource, /couponRedemptions/)
+  assert.match(helperSource, /onConflictDoNothing/)
+  assert.match(helperSource, /usageLimit/)
+  assert.match(helperSource, /usedCount/)
+  assert.match(helperSource, /maxUsesPerEmail/)
+  assert.match(helperSource, /coupon_review/)
+  assert.match(helperSource, /No se consumió el cupón/)
 })

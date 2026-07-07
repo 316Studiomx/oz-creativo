@@ -54,6 +54,7 @@ test('non-stackable coupon uses the better discount', () => {
 
   assert.equal(totals.volumeDiscountCents, 99800)
   assert.equal(totals.couponDiscountCents, 0)
+  assert.equal(totals.couponCode, null)
   assert.equal(totals.totalDiscountCents, 99800)
   assert.equal(totals.discountLabel, 'Descuento por volumen')
 })

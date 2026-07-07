@@ -72,6 +72,13 @@ type CouponRecordForTotals = {
   stackable: boolean
 }
 
+type RedeemablePaidOrder = {
+  id: number
+  couponCode: string | null
+  couponDiscountCents: number
+  customerEmail: string
+}
+
 export type BookOrderRecord = {
   id: number
 }
@@ -181,6 +188,9 @@ export function formatShippingAddressForEmail(address: ShippingAddressForDisplay
 async function getDbModule() {
   return import('../../../../db/index.ts')
 }
+
+type BookDatabase = Awaited<ReturnType<typeof getDbModule>>['db']
+type BookTransaction = Parameters<Parameters<BookDatabase['transaction']>[0]>[0]
 
 export async function findActiveBookProduct() {
   const { db, schema } = await getDbModule()
@@ -300,7 +310,7 @@ export async function createCheckoutOrder(input: CheckoutOrderInput) {
         subtotalCents: input.totals.subtotalCents,
         volumeDiscountPercent: input.totals.volumeDiscountPercent,
         volumeDiscountCents: input.totals.volumeDiscountCents,
-        couponCode: input.totals.couponCode,
+        couponCode: input.totals.couponDiscountCents > 0 ? input.totals.couponCode : null,
         couponDiscountCents: input.totals.couponDiscountCents,
         totalDiscountCents: input.totals.totalDiscountCents,
         shippingChargedCents: input.totals.shippingChargedCents,
@@ -621,6 +631,8 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
       return buildMarkOrderPaidByStripeResult(order, false)
     }
 
+    const now = new Date()
+
     const [item] = await tx
       .select()
       .from(schema.orderItems)
@@ -635,8 +647,8 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
           paymentStatus: 'paid',
           shippingStatus: 'inventory_review',
           stripePaymentIntentId: input.paymentIntentId,
-          paidAt: new Date(),
-          updatedAt: new Date(),
+          paidAt: now,
+          updatedAt: now,
         })
         .where(eq(schema.orders.id, order.id))
         .returning()
@@ -647,6 +659,8 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
         message: 'Pago confirmado pero el pedido no tiene articulos para surtir.',
         metadata: { stripeEventId: input.stripeEventId },
       })
+
+      await redeemPaidOrderCoupon(tx, updatedOrder ?? order, now)
 
       return buildMarkOrderPaidByStripeResult(updatedOrder ?? order, true)
     }
@@ -665,8 +679,8 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
           paymentStatus: 'paid',
           shippingStatus: 'inventory_review',
           stripePaymentIntentId: input.paymentIntentId,
-          paidAt: new Date(),
-          updatedAt: new Date(),
+          paidAt: now,
+          updatedAt: now,
         })
         .where(eq(schema.orders.id, order.id))
         .returning()
@@ -682,10 +696,10 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
         },
       })
 
+      await redeemPaidOrderCoupon(tx, updatedOrder ?? order, now)
+
       return buildMarkOrderPaidByStripeResult(updatedOrder ?? order, true)
     }
-
-    const now = new Date()
 
     const [updatedInventory] = await tx
       .update(schema.inventory)
@@ -722,6 +736,8 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
         },
       })
 
+      await redeemPaidOrderCoupon(tx, updatedOrder ?? order, now)
+
       return buildMarkOrderPaidByStripeResult(updatedOrder ?? order, true)
     }
 
@@ -733,37 +749,6 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
       reason: `Pago confirmado por Stripe ${input.sessionId}`,
       createdBy: 'system',
     })
-
-    if (order.couponCode) {
-      const [coupon] = await tx
-        .select({ id: schema.coupons.id })
-        .from(schema.coupons)
-        .where(eq(schema.coupons.code, order.couponCode))
-        .limit(1)
-
-      if (coupon) {
-        const [redemption] = await tx
-          .insert(schema.couponRedemptions)
-          .values({
-            couponId: coupon.id,
-            orderId: order.id,
-            email: order.customerEmail,
-            redeemedAt: now,
-          })
-          .onConflictDoNothing()
-          .returning({ id: schema.couponRedemptions.id })
-
-        if (redemption) {
-          await tx
-            .update(schema.coupons)
-            .set({
-              usedCount: sql`${schema.coupons.usedCount} + 1`,
-              updatedAt: now,
-            })
-            .where(eq(schema.coupons.id, coupon.id))
-        }
-      }
-    }
 
     const [updatedOrder] = await tx
       .update(schema.orders)
@@ -787,7 +772,135 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
       },
     })
 
+    await redeemPaidOrderCoupon(tx, updatedOrder ?? order, now)
+
     return buildMarkOrderPaidByStripeResult(updatedOrder ?? order, true)
+  })
+}
+
+async function redeemPaidOrderCoupon(
+  tx: BookTransaction,
+  order: RedeemablePaidOrder,
+  now: Date,
+): Promise<boolean> {
+  if (!order.couponCode || order.couponDiscountCents <= 0) {
+    return false
+  }
+
+  const { schema } = await getDbModule()
+
+  const [existingRedemption] = await tx
+    .select({ id: schema.couponRedemptions.id })
+    .from(schema.couponRedemptions)
+    .where(eq(schema.couponRedemptions.orderId, order.id))
+    .limit(1)
+
+  if (existingRedemption) {
+    return true
+  }
+
+  const [coupon] = await tx
+    .select({
+      id: schema.coupons.id,
+      code: schema.coupons.code,
+      usageLimit: schema.coupons.usageLimit,
+      usedCount: schema.coupons.usedCount,
+      maxUsesPerEmail: schema.coupons.maxUsesPerEmail,
+    })
+    .from(schema.coupons)
+    .where(eq(schema.coupons.code, order.couponCode))
+    .limit(1)
+
+  if (!coupon) {
+    await createCouponReviewEvent(tx, order, now, 'No se consumió el cupón: el código ya no existe.')
+    return false
+  }
+
+  const email = order.customerEmail.trim().toLowerCase()
+  if (typeof coupon.maxUsesPerEmail === 'number') {
+    const [emailUsage] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.couponRedemptions)
+      .where(
+        and(
+          eq(schema.couponRedemptions.couponId, coupon.id),
+          sql`lower(${schema.couponRedemptions.email}) = ${email}`,
+        ),
+      )
+      .limit(1)
+
+    if (Number(emailUsage?.count ?? 0) >= coupon.maxUsesPerEmail) {
+      await createCouponReviewEvent(
+        tx,
+        order,
+        now,
+        'No se consumió el cupón: el email excedió el máximo de usos.',
+      )
+      return false
+    }
+  }
+
+  const [updatedCoupon] = await tx
+    .update(schema.coupons)
+    .set({
+      usedCount: sql`${schema.coupons.usedCount} + 1`,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(schema.coupons.id, coupon.id),
+        sql`(${schema.coupons.usageLimit} is null or ${schema.coupons.usedCount} < ${schema.coupons.usageLimit})`,
+      ),
+    )
+    .returning({ id: schema.coupons.id })
+
+  if (!updatedCoupon) {
+    await createCouponReviewEvent(tx, order, now, 'No se consumió el cupón: ya no hay cupo.')
+    return false
+  }
+
+  const [redemption] = await tx
+    .insert(schema.couponRedemptions)
+    .values({
+      couponId: coupon.id,
+      orderId: order.id,
+      email: order.customerEmail,
+      redeemedAt: now,
+    })
+    .onConflictDoNothing()
+    .returning({ id: schema.couponRedemptions.id })
+
+  if (!redemption) {
+    await tx
+      .update(schema.coupons)
+      .set({
+        usedCount: sql`${schema.coupons.usedCount} - 1`,
+        updatedAt: now,
+      })
+      .where(eq(schema.coupons.id, coupon.id))
+    return true
+  }
+
+  return true
+}
+
+async function createCouponReviewEvent(
+  tx: BookTransaction,
+  order: RedeemablePaidOrder,
+  now: Date,
+  message: string,
+) {
+  const { schema } = await getDbModule()
+  await tx.insert(schema.orderEvents).values({
+    orderId: order.id,
+    type: 'coupon_review',
+    message,
+    metadata: {
+      couponCode: order.couponCode,
+      couponDiscountCents: order.couponDiscountCents,
+      customerEmail: order.customerEmail,
+    },
+    createdAt: now,
   })
 }
 

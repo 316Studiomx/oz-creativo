@@ -120,6 +120,13 @@ export function BookCheckoutForm() {
         return
       }
 
+      if (result.totals.couponDiscountCents <= 0) {
+        setCouponStatus('invalid')
+        setCouponTotals(null)
+        setCouponMessage('Ese cupón no mejora el descuento actual.')
+        return
+      }
+
       setCouponStatus('valid')
       setCouponTotals(result.totals)
       setCouponMessage('Cupón aplicado. El total final se confirmará al crear el checkout.')
@@ -264,7 +271,7 @@ export function BookCheckoutForm() {
             <span>-{formatMoney(displayedTotals.volumeDiscountCents)}</span>
           </div>
         ) : null}
-        {activeCouponTotals?.couponCode ? (
+        {activeCouponTotals?.couponCode && activeCouponTotals.couponDiscountCents > 0 ? (
           <div className="mt-2 flex items-center justify-between gap-4 text-yellow">
             <span>Cupón {activeCouponTotals.couponCode}</span>
             <span>-{formatMoney(activeCouponTotals.couponDiscountCents)}</span>
