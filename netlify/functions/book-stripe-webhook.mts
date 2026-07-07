@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions'
 import Stripe from 'stripe'
 
+import { sendPaidOrderEmails } from './_shared/book/email-service.mts'
 import { jsonResponse, methodNotAllowed } from './_shared/book/http.mts'
 import { markOrderPaidByStripe } from './_shared/book/repositories.mts'
 
@@ -51,12 +52,23 @@ export default async (req: Request) => {
     return jsonResponse({ received: true, ignored: true })
   }
 
-  await markOrderPaidByStripe({
+  const paidOrder = await markOrderPaidByStripe({
     sessionId: session.id,
     paymentIntentId: extractPaymentIntentId(session.payment_intent),
     stripeEventId: event.id,
     stripeEventType: event.type,
   })
+
+  if (paidOrder) {
+    try {
+      await sendPaidOrderEmails(paidOrder.id)
+    } catch (error) {
+      console.error('Book paid-order email delivery failed.', {
+        orderId: paidOrder.id,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
 
   return jsonResponse({ received: true, ok: true })
 }
