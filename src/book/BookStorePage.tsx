@@ -21,6 +21,9 @@ export function BookStorePage() {
           <p className="mt-5 max-w-2xl text-xl leading-tight text-paper/90 md:text-2xl">
             {BOOK_STORE_COPY.subtitle}
           </p>
+          <p className="mt-6 max-w-2xl border-l-2 border-yellow bg-yellow/10 px-5 py-4 text-xl font-semibold leading-tight text-yellow md:text-2xl">
+            {BOOK_STORE_COPY.openingQuestion}
+          </p>
           <div className="mt-6 grid max-w-2xl gap-1 text-base leading-relaxed text-muted md:text-lg">
             {BOOK_STORE_COPY.heroLines.map((line) => (
               <p key={line}>{line}</p>
@@ -68,7 +71,9 @@ export function BookStorePage() {
       </section>
 
       <ProductStorySection />
+      <ForYouIfSection />
       <BookReviewsSection />
+      <AuthorBioSection />
       <BookFaqSection />
       <InternationalQuoteForm />
 
@@ -250,11 +255,11 @@ function BookReviewsSection() {
         </p>
       </div>
 
-      <div className="mt-10 grid gap-4 md:grid-cols-3">
+      <div className="mt-10 grid gap-4 md:grid-cols-2">
         {BOOK_STORE_COPY.reviews.map((review) => (
           <article
             key={review.author}
-            className="flex min-h-56 flex-col justify-between rounded-lg border border-white/10 bg-white/[0.03] p-6"
+            className="flex min-h-64 flex-col justify-between rounded-lg border border-white/10 bg-white/[0.03] p-6"
           >
             <p className="text-lg leading-relaxed text-paper">“{review.quote}”</p>
             <div className="mt-8">
@@ -263,6 +268,60 @@ function BookReviewsSection() {
             </div>
           </article>
         ))}
+      </div>
+    </section>
+  )
+}
+
+function ForYouIfSection() {
+  return (
+    <section className="container-x border-t border-white/10 py-16 md:py-20">
+      <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-yellow">Para quién es</p>
+          <h2 className="mt-4 font-display text-4xl font-semibold uppercase leading-none text-paper [letter-spacing:0] md:text-6xl">
+            {BOOK_STORE_COPY.forYouIfTitle}
+          </h2>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {BOOK_STORE_COPY.forYouIf.map((item) => (
+            <div
+              key={item}
+              className="border-l border-yellow bg-white/[0.03] px-5 py-4 text-lg leading-relaxed text-paper"
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function AuthorBioSection() {
+  return (
+    <section className="container-x border-t border-white/10 py-16 md:py-20">
+      <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-yellow">
+            {BOOK_STORE_COPY.author.eyebrow}
+          </p>
+          <h2 className="mt-4 font-display text-4xl font-semibold uppercase leading-none text-paper [letter-spacing:0] md:text-6xl">
+            {BOOK_STORE_COPY.author.title}
+          </h2>
+        </div>
+
+        <div className="rounded-lg border border-yellow/25 bg-yellow/10 p-6">
+          <p className="text-xl font-semibold leading-relaxed text-paper">
+            {BOOK_STORE_COPY.author.shortBio}
+          </p>
+          <div className="mt-6 grid gap-4 text-base leading-relaxed text-muted md:text-lg">
+            {BOOK_STORE_COPY.author.longBio.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   )

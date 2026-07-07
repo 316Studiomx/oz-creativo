@@ -42,16 +42,43 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   assert.equal(pageSource.includes('ProductStorySection'), true)
   assert.equal(pageSource.includes('BookReviewsSection'), true)
   assert.equal(pageSource.includes('BookFaqSection'), true)
+  assert.equal(pageSource.includes('ForYouIfSection'), true)
+  assert.equal(pageSource.includes('AuthorBioSection'), true)
   assert.equal(formSource.includes('$599'), true)
   assert.equal(formSource.includes('$499'), true)
   assert.equal(formSource.includes('03:16'), true)
   assert.match(copySource, /Env[ií]o gratis comprando/i)
+  assert.match(copySource, /Qu[eé] dolor escoger[ií]as/i)
+  assert.match(copySource, /Rappi/i)
+  assert.match(copySource, /Airbnb/i)
+  assert.match(copySource, /Cirque du Soleil/i)
+  assert.match(copySource, /A-D105/i)
+  assert.match(copySource, /necesitas a Dios/i)
   assert.match(copySource, /Resumen largo/i)
   assert.match(copySource, /Caracter[ií]sticas/i)
   assert.match(copySource, /Reseñas/i)
   assert.match(copySource, /Preguntas frecuentes/i)
+  assert.match(copySource, /Susi Vereecken/i)
+  assert.match(copySource, /Marcus Dantus/i)
+  assert.match(copySource, /Este libro es para ti si/i)
+  assert.match(copySource, /sue[ñn]as con serlo/i)
+  assert.match(copySource, /Oz Creativo ayuda a emprendedores/i)
+  assert.match(copySource, /Durante m[aá]s de 12 a[ñn]os/i)
   assert.equal(copySource.includes('heroLines'), true)
   assert.equal((copySource.match(/Hazlo Magnífico/g) ?? []).length >= 4, true)
+
+  for (const question of [
+    '¿El libro es físico o digital?',
+    '¿Cuánto cuesta?',
+    '¿Hay descuentos por volumen?',
+    '¿Puedo usar cupón?',
+    '¿El libro puede ir firmado o dedicado?',
+    '¿Puedo pedir factura?',
+    '¿Cómo recibo mi guía?',
+    '¿Qué pasa si pongo mal mi dirección?',
+  ]) {
+    assert.equal(copySource.includes(question), true)
+  }
 
   for (const country of [
     'Estados Unidos',
