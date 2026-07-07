@@ -27,11 +27,10 @@ export async function verifyAdminPassword(email: string, password: string): Prom
     throw new AdminAuthConfigError('Falta configurar ADMIN_EMAIL o ADMIN_PASSWORD_HASH.')
   }
 
-  if (email.trim().toLowerCase() !== adminEmail.trim().toLowerCase()) {
-    return false
-  }
+  const emailMatches = email.trim().toLowerCase() === adminEmail.trim().toLowerCase()
+  const passwordMatches = await compare(password, passwordHash)
 
-  return compare(password, passwordHash)
+  return emailMatches && passwordMatches
 }
 
 export function createSessionToken(): string {

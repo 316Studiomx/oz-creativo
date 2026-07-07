@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import test from 'node:test'
+import { compare, hash } from 'bcryptjs'
+
+import adminAuthHandler from '../netlify/functions/book-admin-auth.mts'
 
 const authPath = 'netlify/functions/_shared/book/auth.mts'
 const authFunctionPath = 'netlify/functions/book-admin-auth.mts'
 const appPath = 'src/App.tsx'
 const adminAppPath = 'src/admin/AdminApp.tsx'
 const adminLoginPath = 'src/admin/AdminLogin.tsx'
+const adminEmail = 'admin@ozcreativo.test'
+const adminPassword = 'correct-admin-password'
 
 test('admin auth helper builds secure cookies and hashes tokens', async () => {
   assert.equal(existsSync(authPath), true)
@@ -34,6 +39,66 @@ test('admin auth helper builds secure cookies and hashes tokens', async () => {
   const tokenHash = auth.hashSessionToken('plain-session-token')
   assert.match(tokenHash, /^[a-f0-9]{64}$/)
   assert.notEqual(tokenHash, 'plain-session-token')
+})
+
+test('verifyAdminPassword still pays bcrypt cost when email does not match', async () => {
+  const auth = await import('../netlify/functions/_shared/book/auth.mts')
+  const passwordHash = await hash(adminPassword, 10)
+
+  await withAdminEnv({ email: adminEmail, passwordHash }, async () => {
+    const baselineStart = process.hrtime.bigint()
+    await compare('wrong-password', passwordHash)
+    const baselineMs = elapsedMs(baselineStart)
+
+    const mismatchStart = process.hrtime.bigint()
+    const verified = await auth.verifyAdminPassword('intruso@ozcreativo.test', 'wrong-password')
+    const mismatchMs = elapsedMs(mismatchStart)
+
+    assert.equal(verified, false)
+    assert.ok(
+      mismatchMs >= Math.max(5, baselineMs * 0.35),
+      `email mismatch returned before bcrypt compare (${mismatchMs.toFixed(2)}ms vs ${baselineMs.toFixed(2)}ms)`,
+    )
+  })
+})
+
+test('admin login returns 503 when admin auth env is missing', async () => {
+  await withAdminEnv({ email: '', passwordHash: '' }, async () => {
+    const response = await adminAuthHandler(
+      buildLoginRequest({
+        email: adminEmail,
+        password: adminPassword,
+      }),
+    )
+    const body = (await response.json()) as { ok?: boolean; message?: string }
+
+    assert.equal(response.status, 503)
+    assert.equal(body.ok, false)
+    assert.equal(body.message, 'Falta configurar ADMIN_EMAIL o ADMIN_PASSWORD_HASH.')
+  })
+})
+
+test('admin login uses the same response for wrong email and wrong password', async () => {
+  const passwordHash = await hash(adminPassword, 6)
+
+  await withAdminEnv({ email: adminEmail, passwordHash }, async () => {
+    const wrongEmailResponse = await adminAuthHandler(
+      buildLoginRequest({
+        email: 'intruso@ozcreativo.test',
+        password: adminPassword,
+      }),
+    )
+    const wrongPasswordResponse = await adminAuthHandler(
+      buildLoginRequest({
+        email: adminEmail,
+        password: 'wrong-admin-password',
+      }),
+    )
+
+    assert.equal(wrongEmailResponse.status, 401)
+    assert.equal(wrongPasswordResponse.status, 401)
+    assert.deepEqual(await wrongEmailResponse.json(), await wrongPasswordResponse.json())
+  })
 })
 
 test('admin auth API declares login logout me paths and session helpers', () => {
@@ -99,3 +164,43 @@ test('admin shell and login use credentialed requests', () => {
   assert.equal(loginSource.includes("credentials: 'include'"), true)
   assert.equal(loginSource.includes('No se pudo iniciar sesión'), true)
 })
+
+function buildLoginRequest(payload: { email: string; password: string }): Request {
+  return new Request('https://ozcreativo.com/api/book/admin/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+}
+
+async function withAdminEnv(
+  env: { email: string; passwordHash: string },
+  callback: () => Promise<void>,
+): Promise<void> {
+  const previousEmail = process.env.ADMIN_EMAIL
+  const previousPasswordHash = process.env.ADMIN_PASSWORD_HASH
+  process.env.ADMIN_EMAIL = env.email
+  process.env.ADMIN_PASSWORD_HASH = env.passwordHash
+
+  try {
+    await callback()
+  } finally {
+    restoreEnv('ADMIN_EMAIL', previousEmail)
+    restoreEnv('ADMIN_PASSWORD_HASH', previousPasswordHash)
+  }
+}
+
+function restoreEnv(key: 'ADMIN_EMAIL' | 'ADMIN_PASSWORD_HASH', value: string | undefined) {
+  if (typeof value === 'undefined') {
+    delete process.env[key]
+    return
+  }
+
+  process.env[key] = value
+}
+
+function elapsedMs(start: bigint): number {
+  return Number(process.hrtime.bigint() - start) / 1_000_000
+}
