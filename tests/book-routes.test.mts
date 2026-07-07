@@ -25,7 +25,8 @@ test('book store page posts to the book checkout endpoint', () => {
   const copySource = readFileSync('src/book/bookCopy.ts', 'utf8')
 
   assert.equal(bookSource.includes('/api/book/checkout/create-session'), true)
-  assert.equal(bookSource.includes('Comprar con Stripe'), true)
+  assert.equal(bookSource.includes('Quiero mi libro'), true)
+  assert.equal(bookSource.includes('Comprar con Stripe'), false)
   assert.equal(bookSource.includes('Envío gratis dentro de México'), true)
   assert.equal(copySource.includes('Hazlo Magnífico'), true)
   assert.equal(copySource.includes('$499 MXN'), true)

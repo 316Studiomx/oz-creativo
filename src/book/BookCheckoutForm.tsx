@@ -428,7 +428,7 @@ export function BookCheckoutForm() {
         disabled={status === 'submitting'}
         className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-yellow px-6 py-4 text-sm font-semibold text-ink transition-transform hover:scale-[1.01] disabled:cursor-wait disabled:opacity-70 md:text-base"
       >
-        {status === 'submitting' ? 'Creando checkout...' : 'Comprar con Stripe'}
+        {status === 'submitting' ? 'Creando checkout...' : 'Quiero mi libro'}
       </button>
       <p className="mt-3 text-xs leading-relaxed text-muted">
         Tus datos se usan para preparar el pedido y enviarte la confirmación por correo.
