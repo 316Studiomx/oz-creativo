@@ -4,6 +4,7 @@ import { Magnetic } from '../components/Magnetic'
 
 export function Book() {
   const hasAmazonLink = COPY.book.amazonHref.length > 0
+  const opensInNewTab = /^https?:\/\//.test(COPY.book.amazonHref)
 
   return (
     <section id="libro" className="relative overflow-hidden py-24 md:py-36">
@@ -47,7 +48,7 @@ export function Book() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-15% 0px' }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="display mt-6 max-w-4xl text-[clamp(2.2rem,5.6vw,5rem)] [letter-spacing:0]"
+            className="display mt-6 max-w-4xl text-5xl [letter-spacing:0] sm:text-6xl md:text-7xl lg:text-8xl"
             aria-label={`También soy autor de ${COPY.book.title}.`}
           >
             <span className="block" aria-hidden="true">
@@ -81,8 +82,8 @@ export function Book() {
               <Magnetic strength={0.28} className="inline-block">
                 <a
                   href={COPY.book.amazonHref}
-                  target="_blank"
-                  rel="noreferrer"
+                  target={opensInNewTab ? '_blank' : undefined}
+                  rel={opensInNewTab ? 'noreferrer' : undefined}
                   className="inline-flex items-center gap-3 rounded-full bg-yellow px-8 py-4 font-semibold text-ink transition-transform hover:scale-[1.03]"
                 >
                   {COPY.book.cta}

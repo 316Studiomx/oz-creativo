@@ -2,6 +2,7 @@ node_modules
 dist
 dist-ssr
 dist.zip
+.worktrees/
 *.local
 .DS_Store
 .claude/

@@ -93,9 +93,9 @@ export const COPY = {
     ],
     src: '/assets/track/hazlo-magnifico-libro.jpg',
     alt: 'Libro Hazlo Magnífico de Oz Creativo sobre una mesa, con portada amarilla y corazón en relieve.',
-    amazonHref: '',
-    cta: 'Comprar en Amazon',
-    ctaPending: 'Link de Amazon pendiente',
+    amazonHref: '/libro',
+    cta: 'Comprar libro',
+    ctaPending: 'Comprar libro',
   },
 
   services: {
