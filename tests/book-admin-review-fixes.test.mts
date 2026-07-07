@@ -59,10 +59,29 @@ test('admin coupon patch validates the final merged percent state', () => {
     message: 'El porcentaje no puede ser mayor a 100.',
   })
 
-  assert.deepEqual(adminCoupons.normalizeAdminCouponPatch({ id: 7, type: 'percent' }, existingFixedCoupon), {
+  assert.deepEqual(adminCoupons.normalizeAdminCouponPatch({ id: 7, type: 'percent', value: 150 }, existingFixedCoupon), {
     ok: false,
     message: 'El porcentaje no puede ser mayor a 100.',
   })
+})
+
+test('admin coupon patch requires a fresh value when changing coupon type', () => {
+  assert.deepEqual(adminCoupons.normalizeAdminCouponPatch({ id: 7, type: 'fixed' }, existingPercentCoupon), {
+    ok: false,
+    message: 'Incluye un valor nuevo al cambiar el tipo de cupon.',
+  })
+
+  assert.deepEqual(
+    adminCoupons.normalizeAdminCouponPatch({ id: 7, type: 'fixed', value: 20 }, existingPercentCoupon),
+    {
+      ok: true,
+      value: {
+        id: 7,
+        type: 'fixed',
+        value: 2000,
+      },
+    },
+  )
 })
 
 test('admin coupon validation rejects zero limits and string booleans', () => {

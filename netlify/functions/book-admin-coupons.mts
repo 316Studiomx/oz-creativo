@@ -157,6 +157,10 @@ export function normalizeAdminCouponPatch(
   if (!base.ok) return base
 
   const type = base.value.values.type || existingCoupon.type
+  if (base.value.touched.type && type !== existingCoupon.type && !base.value.touched.value) {
+    return { ok: false, message: 'Incluye un valor nuevo al cambiar el tipo de cupon.' }
+  }
+
   const value = base.value.touched.value
     ? normalizeCouponValue(type, base.value.valueInput)
     : { ok: true as const, value: existingCoupon.value }
