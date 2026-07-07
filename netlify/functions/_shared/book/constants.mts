@@ -1,0 +1,10 @@
+export const BOOK_SKU = 'HAZLO-MAGNIFICO-PAPERBACK'
+export const BOOK_TITLE = 'Hazlo Magnífico'
+export const BOOK_SUBTITLE = 'La fórmula para emprender tus sueños sin perder el alma'
+export const BOOK_AUTHOR = 'Oz Creativo'
+export const BOOK_PRICE_CENTS = 49_900
+export const BOOK_CURRENCY = 'MXN'
+export const BOOK_INITIAL_STOCK = 100
+export const MIN_BOOK_QUANTITY = 1
+export const MAX_BOOK_QUANTITY = 10
+export const FREE_MEXICO_SHIPPING_CENTS = 0
