@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS shipping_addresses (
   state text NOT NULL,
   postal_code text NOT NULL,
   country text NOT NULL DEFAULT 'MX',
-  references text
+  "references" text
 );
 
 CREATE TABLE IF NOT EXISTS shipments (
