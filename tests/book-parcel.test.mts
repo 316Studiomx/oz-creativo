@@ -29,3 +29,7 @@ test('ten books remain inside the public quantity limit', () => {
     heightCm: 12,
   })
 })
+
+test('decimal quantities are rejected', () => {
+  assert.throws(() => calculateBookParcel(1.5), /cantidad debe estar entre 1 y 10/i)
+})

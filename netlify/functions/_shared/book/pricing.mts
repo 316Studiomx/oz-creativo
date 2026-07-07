@@ -38,7 +38,11 @@ export function calculateBookTotals(input: {
   quantity: number
   coupon?: CouponForTotals | null
 }): BookTotals {
-  const quantity = Math.trunc(input.quantity)
+  if (!Number.isInteger(input.quantity)) {
+    throw new Error('La cantidad debe estar entre 1 y 10 libros.')
+  }
+
+  const quantity = input.quantity
   if (quantity < MIN_BOOK_QUANTITY || quantity > MAX_BOOK_QUANTITY) {
     throw new Error('La cantidad debe estar entre 1 y 10 libros.')
   }

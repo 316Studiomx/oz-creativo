@@ -78,6 +78,7 @@ test('stackable coupon adds to volume discount', () => {
 test('quantity outside 1 through 10 is rejected', () => {
   assert.throws(() => calculateBookTotals({ quantity: 0 }), /cantidad debe estar entre 1 y 10/i)
   assert.throws(() => calculateBookTotals({ quantity: 11 }), /cantidad debe estar entre 1 y 10/i)
+  assert.throws(() => calculateBookTotals({ quantity: 1.5 }), /cantidad debe estar entre 1 y 10/i)
 })
 
 test('coupon codes are normalized for storage and comparison', () => {
