@@ -93,7 +93,7 @@ test('track section is renamed to escenarios and does not publish keyword capsul
   assert.equal(serializedTrack.includes('Escenarios, marcas y reconocimientos'), false)
 })
 
-test('book section presents Hazlo Magnifico with a pending Amazon link', () => {
+test('book section presents Hazlo Magnifico with an internal store link', () => {
   const book = COPY.book as unknown as {
     title?: string
     eyebrow?: string
@@ -113,9 +113,9 @@ test('book section presents Hazlo Magnifico with a pending Amazon link', () => {
   assert.equal(book.src, '/assets/track/hazlo-magnifico-libro.jpg')
   assert.ok(statSync(resolve('public', book.src.replace(/^\//, ''))).size > 20_000)
   assert.ok((book.alt || '').length > 20)
-  assert.equal(book.amazonHref, '')
-  assert.equal(book.cta, 'Comprar en Amazon')
-  assert.equal(book.ctaPending, 'Link de Amazon pendiente')
+  assert.equal(book.amazonHref, '/libro')
+  assert.equal(book.cta, 'Comprar libro')
+  assert.equal(book.ctaPending, 'Comprar libro')
 })
 
 test('accreditations section lists clickable visual credentials', () => {

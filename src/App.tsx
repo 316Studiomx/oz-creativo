@@ -9,6 +9,10 @@ import { Grain } from './components/Grain'
 import { HeroBackdropFallback } from './components/HeroBackdropFallback'
 import { LeadFormModal } from './components/LeadFormModal'
 import { ProposalPage } from './components/ProposalPage'
+import { BookStorePage } from './book/BookStorePage'
+import { ThankYouPage } from './book/ThankYouPage'
+import { OrderStatusPage } from './book/OrderStatusPage'
+import { LegalPage, type LegalSlug } from './book/LegalPages'
 import { Hero } from './sections/Hero'
 import { Stats } from './sections/Stats'
 import { About } from './sections/About'
@@ -26,6 +30,7 @@ gsap.registerPlugin(ScrollTrigger)
 const Scene = lazy(() => import('./three/Scene'))
 
 export default function App() {
+  const bookRoute = getBookRoute(window.location.pathname)
   const proposalRoute = getProposalRoute(window.location.pathname)
   const reduced = useReducedMotion()
   const isMobile = useIsMobile()
@@ -73,6 +78,46 @@ export default function App() {
     }
   }, [reduced])
 
+  if (bookRoute?.type === 'book') {
+    return (
+      <>
+        <Cursor />
+        <Grain />
+        <BookStorePage />
+      </>
+    )
+  }
+
+  if (bookRoute?.type === 'thanks') {
+    return (
+      <>
+        <Cursor />
+        <Grain />
+        <ThankYouPage />
+      </>
+    )
+  }
+
+  if (bookRoute?.type === 'order') {
+    return (
+      <>
+        <Cursor />
+        <Grain />
+        <OrderStatusPage orderNumber={bookRoute.orderNumber} />
+      </>
+    )
+  }
+
+  if (bookRoute?.type === 'legal') {
+    return (
+      <>
+        <Cursor />
+        <Grain />
+        <LegalPage slug={bookRoute.slug} />
+      </>
+    )
+  }
+
   if (proposalRoute) {
     return (
       <>
@@ -109,6 +154,38 @@ export default function App() {
       </main>
     </>
   )
+}
+
+function getBookRoute(pathname: string):
+  | { type: 'book' }
+  | { type: 'thanks' }
+  | { type: 'order'; orderNumber: string }
+  | { type: 'legal'; slug: LegalSlug }
+  | null {
+  if (pathname === '/libro') return { type: 'book' }
+  if (pathname === '/gracias') return { type: 'thanks' }
+
+  const [, route, orderNumber] = pathname.split('/')
+  if (route === 'pedido' && orderNumber) {
+    return { type: 'order', orderNumber }
+  }
+
+  const slug = pathname.slice(1)
+  if (isLegalSlug(slug)) {
+    return { type: 'legal', slug }
+  }
+
+  return null
+}
+
+function isLegalSlug(value: string): value is LegalSlug {
+  return [
+    'politica-de-envios',
+    'cambios-devoluciones-cancelaciones',
+    'aviso-de-privacidad',
+    'terminos-y-condiciones',
+    'contacto',
+  ].includes(value)
 }
 
 function getProposalRoute(pathname: string): { folio: string; token: string } | null {
