@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, sql } from 'drizzle-orm'
 
 import { BOOK_SKU } from './constants.mts'
-import type { BookTotals } from './pricing.mts'
+import type { BookTotals, CouponForTotals } from './pricing.mts'
 
 export type BookOrderStatus =
   | 'checkout_created'
@@ -56,6 +56,20 @@ type InternationalQuoteLeadInput = {
   postalCode: string
   quantity: number
   message?: string
+}
+
+type ActiveCouponContext = {
+  quantity?: number
+  subtotalCents?: number
+  email?: string
+  now?: Date
+}
+
+type CouponRecordForTotals = {
+  code: string
+  type: 'percent' | 'fixed'
+  value: number
+  stackable: boolean
 }
 
 export type BookOrderRecord = {
@@ -181,6 +195,86 @@ export async function findActiveBookProduct() {
     .limit(1)
 
   return product ?? null
+}
+
+export function couponRecordToTotalsCoupon(coupon: CouponRecordForTotals): CouponForTotals {
+  return {
+    code: coupon.code,
+    type: coupon.type,
+    value: coupon.value,
+    stackable: coupon.stackable,
+  }
+}
+
+export async function findActiveCoupon(code: string, context: ActiveCouponContext = {}) {
+  const normalized = code.trim().toUpperCase()
+  if (!normalized) {
+    return null
+  }
+
+  const { db, schema } = await getDbModule()
+  const [coupon] = await db
+    .select()
+    .from(schema.coupons)
+    .where(and(eq(schema.coupons.code, normalized), eq(schema.coupons.active, true)))
+    .limit(1)
+
+  if (!coupon) {
+    return null
+  }
+
+  const now = context.now ?? new Date()
+  if (coupon.startsAt && coupon.startsAt > now) {
+    return null
+  }
+
+  if (coupon.expiresAt && coupon.expiresAt < now) {
+    return null
+  }
+
+  if (typeof coupon.usageLimit === 'number' && coupon.usedCount >= coupon.usageLimit) {
+    return null
+  }
+
+  if (
+    typeof coupon.minSubtotalCents === 'number' &&
+    typeof context.subtotalCents === 'number' &&
+    context.subtotalCents < coupon.minSubtotalCents
+  ) {
+    return null
+  }
+
+  if (
+    typeof coupon.minQuantity === 'number' &&
+    typeof context.quantity === 'number' &&
+    context.quantity < coupon.minQuantity
+  ) {
+    return null
+  }
+
+  if (typeof coupon.maxUsesPerEmail === 'number' && coupon.maxUsesPerEmail <= 0) {
+    return null
+  }
+
+  const email = context.email?.trim().toLowerCase()
+  if (typeof coupon.maxUsesPerEmail === 'number' && email) {
+    const [usage] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.couponRedemptions)
+      .where(
+        and(
+          eq(schema.couponRedemptions.couponId, coupon.id),
+          sql`lower(${schema.couponRedemptions.email}) = ${email}`,
+        ),
+      )
+      .limit(1)
+
+    if (Number(usage?.count ?? 0) >= coupon.maxUsesPerEmail) {
+      return null
+    }
+  }
+
+  return coupon
 }
 
 export async function createCheckoutOrder(input: CheckoutOrderInput) {
@@ -639,6 +733,37 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
       reason: `Pago confirmado por Stripe ${input.sessionId}`,
       createdBy: 'system',
     })
+
+    if (order.couponCode) {
+      const [coupon] = await tx
+        .select({ id: schema.coupons.id })
+        .from(schema.coupons)
+        .where(eq(schema.coupons.code, order.couponCode))
+        .limit(1)
+
+      if (coupon) {
+        const [redemption] = await tx
+          .insert(schema.couponRedemptions)
+          .values({
+            couponId: coupon.id,
+            orderId: order.id,
+            email: order.customerEmail,
+            redeemedAt: now,
+          })
+          .onConflictDoNothing()
+          .returning({ id: schema.couponRedemptions.id })
+
+        if (redemption) {
+          await tx
+            .update(schema.coupons)
+            .set({
+              usedCount: sql`${schema.coupons.usedCount} + 1`,
+              updatedAt: now,
+            })
+            .where(eq(schema.coupons.id, coupon.id))
+        }
+      }
+    }
 
     const [updatedOrder] = await tx
       .update(schema.orders)

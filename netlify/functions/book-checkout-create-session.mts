@@ -3,7 +3,12 @@ import type { Config } from '@netlify/functions'
 import { getSiteUrl, jsonResponse, methodNotAllowed } from './_shared/book/http.mts'
 import { buildOrderNumber, buildPublicOrderToken } from './_shared/book/order-numbers.mts'
 import { calculateBookTotals } from './_shared/book/pricing.mts'
-import { attachStripeSession, createCheckoutOrder } from './_shared/book/repositories.mts'
+import {
+  attachStripeSession,
+  couponRecordToTotalsCoupon,
+  findActiveCoupon,
+  createCheckoutOrder,
+} from './_shared/book/repositories.mts'
 import { createBookCheckoutSession, getStripe } from './_shared/book/stripe.mts'
 import { checkoutSchema } from './_shared/book/validation.mts'
 
@@ -42,11 +47,28 @@ export default async (req: Request) => {
     return jsonResponse({ ok: false, message: 'Datos de checkout invalidos.' }, 400)
   }
 
-  const totals = calculateBookTotals({
-    quantity: parsed.data.quantity,
-  })
-
   try {
+    const couponCode = parsed.data.couponCode?.trim() || ''
+    const baseTotals = calculateBookTotals({
+      quantity: parsed.data.quantity,
+    })
+    const coupon = couponCode
+      ? await findActiveCoupon(couponCode, {
+          quantity: parsed.data.quantity,
+          subtotalCents: baseTotals.subtotalCents,
+          email: parsed.data.customer.email,
+        })
+      : null
+
+    if (couponCode && !coupon) {
+      return jsonResponse({ ok: false, message: 'Cupón no válido para esta compra.' }, 400)
+    }
+
+    const totals = calculateBookTotals({
+      quantity: parsed.data.quantity,
+      coupon: coupon ? couponRecordToTotalsCoupon(coupon) : null,
+    })
+
     const order = await createCheckoutOrder({
       orderNumber: buildOrderNumber(),
       publicToken: buildPublicOrderToken(),

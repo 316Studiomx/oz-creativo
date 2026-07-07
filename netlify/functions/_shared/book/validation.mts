@@ -25,6 +25,7 @@ export const checkoutSchema = z.object({
 export const couponValidationSchema = z.object({
   quantity: z.coerce.number().int().min(1).max(10),
   couponCode: z.string().trim().min(1).max(64),
+  email: z.string().trim().email().max(180).optional().or(z.literal('')),
 })
 
 export const internationalQuoteSchema = z.object({

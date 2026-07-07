@@ -9,6 +9,27 @@ type CheckoutResponse = {
   message?: string
 }
 
+type BookTotals = {
+  currency: 'MXN'
+  quantity: number
+  unitPriceCents: number
+  subtotalCents: number
+  volumeDiscountPercent: number
+  volumeDiscountCents: number
+  couponCode: string | null
+  couponDiscountCents: number
+  totalDiscountCents: number
+  shippingChargedCents: number
+  totalCents: number
+  discountLabel: string | null
+}
+
+type CouponValidationResponse = {
+  ok: boolean
+  totals?: BookTotals
+  message?: string
+}
+
 type CheckoutFormState = {
   quantity: number
   coupon: string
@@ -45,14 +66,68 @@ export function BookCheckoutForm() {
   const [form, setForm] = useState<CheckoutFormState>(INITIAL_FORM)
   const [status, setStatus] = useState<'idle' | 'submitting'>('idle')
   const [message, setMessage] = useState<string | null>(null)
+  const [couponStatus, setCouponStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>(
+    'idle',
+  )
+  const [couponMessage, setCouponMessage] = useState<string | null>(null)
+  const [couponTotals, setCouponTotals] = useState<BookTotals | null>(null)
 
-  const subtotal = useMemo(
-    () => BOOK_STORE_COPY.unitPrice * clampQuantity(form.quantity),
+  const quantity = clampQuantity(form.quantity)
+  const fallbackTotals = useMemo(
+    () => buildFrontendEstimate(quantity),
     [form.quantity],
   )
+  const activeCouponTotals =
+    couponTotals &&
+    couponTotals.quantity === quantity &&
+    couponTotals.couponCode === form.coupon.trim().toUpperCase()
+      ? couponTotals
+      : null
+  const displayedTotals = activeCouponTotals || fallbackTotals
 
   const updateField = (field: keyof CheckoutFormState, value: string | number) => {
     setForm((current) => ({ ...current, [field]: value }))
+    if (field === 'coupon' || field === 'quantity' || field === 'email') {
+      setCouponStatus('idle')
+      setCouponMessage(null)
+      setCouponTotals(null)
+    }
+  }
+
+  const handleValidateCoupon = async () => {
+    const couponCode = form.coupon.trim()
+    if (!couponCode) {
+      setCouponStatus('invalid')
+      setCouponMessage('Escribe un cupón antes de aplicarlo.')
+      setCouponTotals(null)
+      return
+    }
+
+    setCouponStatus('validating')
+    setCouponMessage(null)
+
+    try {
+      const result = await postJson<CouponValidationResponse>('/api/book/coupons/validate', {
+        quantity,
+        couponCode,
+        email: form.email.trim() || undefined,
+      })
+
+      if (!result.totals) {
+        setCouponStatus('invalid')
+        setCouponTotals(null)
+        setCouponMessage(result.message || 'No se pudo validar el cupón.')
+        return
+      }
+
+      setCouponStatus('valid')
+      setCouponTotals(result.totals)
+      setCouponMessage('Cupón aplicado. El total final se confirmará al crear el checkout.')
+    } catch (error) {
+      setCouponStatus('invalid')
+      setCouponTotals(null)
+      setCouponMessage(error instanceof Error ? error.message : 'No se pudo validar el cupón.')
+    }
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -60,7 +135,6 @@ export function BookCheckoutForm() {
     setStatus('submitting')
     setMessage(null)
 
-    const quantity = clampQuantity(form.quantity)
     const payload = {
       quantity,
       couponCode: form.coupon.trim(),
@@ -144,27 +218,69 @@ export function BookCheckoutForm() {
           </select>
         </label>
 
-        <Field
-          label="Cupón"
-          value={form.coupon}
-          onChange={(value) => updateField('coupon', value)}
-          autoComplete="off"
-          optional
-        />
+        <div className="min-w-0 sm:col-span-1">
+          <label>
+            <span className="text-sm font-medium text-paper">
+              Cupón <span className="text-muted">opcional</span>
+            </span>
+            <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                value={form.coupon}
+                onChange={(event) => updateField('coupon', event.target.value)}
+                autoComplete="off"
+                className="w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-paper outline-none transition-colors placeholder:text-muted focus:border-yellow"
+              />
+              <button
+                type="button"
+                onClick={handleValidateCoupon}
+                disabled={couponStatus === 'validating'}
+                className="inline-flex shrink-0 items-center justify-center rounded-full border border-yellow/45 px-4 py-3 text-sm font-semibold text-yellow transition-colors hover:bg-yellow hover:text-ink disabled:cursor-wait disabled:opacity-70"
+              >
+                {couponStatus === 'validating' ? 'Validando...' : 'Aplicar cupón'}
+              </button>
+            </div>
+          </label>
+          {couponMessage ? (
+            <p
+              className={`mt-2 text-xs leading-relaxed ${
+                couponStatus === 'invalid' ? 'text-paper' : 'text-yellow'
+              }`}
+            >
+              {couponMessage}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="mt-5 border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-paper/90">
         <div className="flex items-center justify-between gap-4">
-          <span>{clampQuantity(form.quantity)} x libro físico</span>
-          <strong>${subtotal.toLocaleString('es-MX')} MXN</strong>
+          <span>{quantity} x libro físico</span>
+          <strong>{formatMoney(displayedTotals.subtotalCents)}</strong>
         </div>
+        {displayedTotals.volumeDiscountCents > 0 ? (
+          <div className="mt-2 flex items-center justify-between gap-4 text-muted">
+            <span>Descuento por volumen</span>
+            <span>-{formatMoney(displayedTotals.volumeDiscountCents)}</span>
+          </div>
+        ) : null}
+        {activeCouponTotals?.couponCode ? (
+          <div className="mt-2 flex items-center justify-between gap-4 text-yellow">
+            <span>Cupón {activeCouponTotals.couponCode}</span>
+            <span>-{formatMoney(activeCouponTotals.couponDiscountCents)}</span>
+          </div>
+        ) : null}
         <div className="mt-2 flex items-center justify-between gap-4 text-muted">
           <span>Envío nacional</span>
-          <span>$0 MXN</span>
+          <span>{formatMoney(displayedTotals.shippingChargedCents)}</span>
         </div>
-        {form.coupon.trim() ? (
+        <div className="mt-3 flex items-center justify-between gap-4 border-t border-white/10 pt-3 text-base text-paper">
+          <span>Total estimado</span>
+          <strong>{formatMoney(displayedTotals.totalCents)}</strong>
+        </div>
+        {!form.coupon.trim() ? (
           <p className="mt-3 text-xs leading-relaxed text-yellow">
-            El cupón se validará al crear el checkout.
+            Descuento por volumen: 10% desde 5 libros y 20% al comprar 10.
           </p>
         ) : null}
       </div>
@@ -340,6 +456,40 @@ function TextArea(props: {
 function clampQuantity(value: number): number {
   if (!Number.isFinite(value)) return 1
   return Math.min(10, Math.max(1, Math.trunc(value)))
+}
+
+function buildFrontendEstimate(quantity: number): BookTotals {
+  const subtotalCents = quantity * BOOK_STORE_COPY.unitPrice * 100
+  const volumeDiscountPercent = getVolumeDiscountPercent(quantity)
+  const volumeDiscountCents = Math.round((subtotalCents * volumeDiscountPercent) / 100)
+
+  return {
+    currency: 'MXN',
+    quantity,
+    unitPriceCents: BOOK_STORE_COPY.unitPrice * 100,
+    subtotalCents,
+    volumeDiscountPercent,
+    volumeDiscountCents,
+    couponCode: null,
+    couponDiscountCents: 0,
+    totalDiscountCents: volumeDiscountCents,
+    shippingChargedCents: 0,
+    totalCents: Math.max(0, subtotalCents - volumeDiscountCents),
+    discountLabel: volumeDiscountCents > 0 ? 'Descuento por volumen' : null,
+  }
+}
+
+function getVolumeDiscountPercent(quantity: number): number {
+  if (quantity === 10) return 20
+  if (quantity >= 5) return 10
+  return 0
+}
+
+function formatMoney(cents: number): string {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+  }).format(cents / 100)
 }
 
 function safeCheckoutUrl(value: string): string | null {
