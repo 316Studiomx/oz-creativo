@@ -35,6 +35,7 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   const pageSource = readFileSync('src/book/BookStorePage.tsx', 'utf8')
   const formSource = readFileSync('src/book/BookCheckoutForm.tsx', 'utf8')
   const copySource = readFileSync('src/book/bookCopy.ts', 'utf8')
+  const stylesSource = readFileSync('src/styles/index.css', 'utf8')
 
   assert.equal(pageSource.includes('PromoTicker'), true)
   assert.equal(pageSource.includes('HeroBookCarousel'), true)
@@ -48,8 +49,13 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   assert.equal(pageSource.includes('BookFaqSection'), true)
   assert.equal(pageSource.includes('ForYouIfSection'), true)
   assert.equal(pageSource.includes('AuthorBioSection'), true)
+  assert.equal(pageSource.includes('FloatingBookPagesSection'), true)
+  assert.equal(pageSource.includes('BOOK_STORE_COPY.previewPages.map'), true)
+  assert.equal(pageSource.includes('book-page-float'), true)
+  assert.equal(pageSource.includes('--page-parallax'), true)
   assert.ok(pageSource.indexOf('BOOK_STORE_COPY.longSummary.title') < pageSource.indexOf('BOOK_STORE_COPY.specs.map'))
   assert.ok(pageSource.indexOf('BOOK_STORE_COPY.specs.map') < pageSource.indexOf('function BookReviewsSection'))
+  assert.ok(pageSource.indexOf('FloatingBookPagesSection') < pageSource.indexOf('ProductStorySection'))
   assert.equal(pageSource.includes('BOOK_STORE_COPY.author.ctaLabel'), true)
   assert.equal(pageSource.includes('href={BOOK_STORE_COPY.author.ctaHref}'), true)
   const authorSectionSource = pageSource.slice(
@@ -65,6 +71,7 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   assert.equal(BOOK_STORE_COPY.learn.length, 3)
   assert.equal(BOOK_STORE_COPY.forYouIf.length, 4)
   assert.equal(BOOK_STORE_COPY.faq.length, 8)
+  assert.equal(BOOK_STORE_COPY.previewPages.length, 5)
   assert.equal(BOOK_STORE_COPY.faq.some((item) => item.question === '¿Cuánto cuesta?'), false)
   assert.equal(formSource.includes('$599'), true)
   assert.equal(formSource.includes('$499'), true)
@@ -88,6 +95,9 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   assert.match(copySource, /Durante m[aá]s de 12 a[ñn]os/i)
   assert.equal(copySource.includes('heroLines'), true)
   assert.equal((copySource.match(/Hazlo Magnífico/g) ?? []).length >= 4, true)
+  assert.match(stylesSource, /book-page-reveal-grid:hover/)
+  assert.match(stylesSource, /@keyframes book-page-float/)
+  assert.match(stylesSource, /--page-parallax/)
 
   for (const question of [
     '¿El libro es físico o digital?',
@@ -120,6 +130,17 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
     'public/assets/book/hazlo-magnifico-abierto.jpg',
     'public/assets/book/hazlo-magnifico-detalle-portada.jpg',
     'public/assets/book/hazlo-magnifico-portada-completa.jpg',
+  ]) {
+    assert.equal(existsSync(asset), true)
+    assert.equal(copySource.includes(asset.replace('public', '')), true)
+  }
+
+  for (const asset of [
+    'public/assets/book/pages/hazlo-magnifico-pagina-cero-excusas-01.png',
+    'public/assets/book/pages/hazlo-magnifico-pagina-cero-excusas-02.png',
+    'public/assets/book/pages/hazlo-magnifico-pagina-introduccion.png',
+    'public/assets/book/pages/hazlo-magnifico-pagina-relato-01.png',
+    'public/assets/book/pages/hazlo-magnifico-pagina-relato-02.png',
   ]) {
     assert.equal(existsSync(asset), true)
     assert.equal(copySource.includes(asset.replace('public', '')), true)

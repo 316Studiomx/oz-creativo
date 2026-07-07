@@ -45,6 +45,28 @@ export const BOOK_STORE_COPY = {
       alt: 'Detalle de la portada amarilla del libro Hazlo Magnífico.',
     },
   ],
+  previewPages: [
+    {
+      src: '/assets/book/pages/hazlo-magnifico-pagina-cero-excusas-01.png',
+      alt: 'Página interior de Hazlo Magnífico sobre el protocolo cero excusas.',
+    },
+    {
+      src: '/assets/book/pages/hazlo-magnifico-pagina-cero-excusas-02.png',
+      alt: 'Página interior de Hazlo Magnífico con doblez inferior.',
+    },
+    {
+      src: '/assets/book/pages/hazlo-magnifico-pagina-introduccion.png',
+      alt: 'Página de introducción de Hazlo Magnífico sobre intentarlo o nunca intentarlo.',
+    },
+    {
+      src: '/assets/book/pages/hazlo-magnifico-pagina-relato-01.png',
+      alt: 'Página interior de Hazlo Magnífico con relato personal.',
+    },
+    {
+      src: '/assets/book/pages/hazlo-magnifico-pagina-relato-02.png',
+      alt: 'Página inclinada de Hazlo Magnífico con relato personal.',
+    },
+  ],
   learn: [
     'Dar el primer paso aunque no te sientas “listo”, aplicando el secreto del Producto Mínimo Viable a tu vida y tu negocio.',
     'Convertir pequeñas acciones diarias en resultados enormes con el poder del 1% y el efecto compuesto.',
