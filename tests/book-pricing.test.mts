@@ -75,6 +75,70 @@ test('stackable coupon adds to volume discount', () => {
   assert.equal(totals.totalCents, 199600)
 })
 
+test('negative fixed coupon is rejected', () => {
+  assert.throws(
+    () =>
+      calculateBookTotals({
+        quantity: 2,
+        coupon: {
+          code: 'NEGATIVO',
+          type: 'fixed',
+          value: -100,
+          stackable: false,
+        },
+      }),
+    /Cupón inválido\./i,
+  )
+})
+
+test('NaN fixed coupon is rejected', () => {
+  assert.throws(
+    () =>
+      calculateBookTotals({
+        quantity: 2,
+        coupon: {
+          code: 'NAN',
+          type: 'fixed',
+          value: Number.NaN,
+          stackable: false,
+        },
+      }),
+    /Cupón inválido\./i,
+  )
+})
+
+test('Infinity percent coupon is rejected', () => {
+  assert.throws(
+    () =>
+      calculateBookTotals({
+        quantity: 2,
+        coupon: {
+          code: 'INFINITE',
+          type: 'percent',
+          value: Number.POSITIVE_INFINITY,
+          stackable: false,
+        },
+      }),
+    /Cupón inválido\./i,
+  )
+})
+
+test('percent coupon above 100 is rejected', () => {
+  assert.throws(
+    () =>
+      calculateBookTotals({
+        quantity: 2,
+        coupon: {
+          code: 'ALTO',
+          type: 'percent',
+          value: 110,
+          stackable: false,
+        },
+      }),
+    /Cupón inválido\./i,
+  )
+})
+
 test('quantity outside 1 through 10 is rejected', () => {
   assert.throws(() => calculateBookTotals({ quantity: 0 }), /cantidad debe estar entre 1 y 10/i)
   assert.throws(() => calculateBookTotals({ quantity: 11 }), /cantidad debe estar entre 1 y 10/i)

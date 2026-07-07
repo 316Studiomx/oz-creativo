@@ -50,16 +50,17 @@ export function calculateBookTotals(input: {
   const subtotalCents = quantity * BOOK_PRICE_CENTS
   const volumeDiscountPercent = getVolumeDiscountPercent(quantity)
   const volumeDiscountCents = Math.round((subtotalCents * volumeDiscountPercent) / 100)
-  const rawCouponDiscountCents = input.coupon
-    ? calculateCouponDiscountCents(subtotalCents, input.coupon)
+  const validatedCoupon = input.coupon ? assertValidCoupon(input.coupon) : null
+  const rawCouponDiscountCents = validatedCoupon
+    ? calculateCouponDiscountCents(subtotalCents, validatedCoupon)
     : 0
 
   let couponDiscountCents = 0
   let totalDiscountCents = volumeDiscountCents
   let discountLabel: string | null = volumeDiscountCents > 0 ? 'Descuento por volumen' : null
 
-  if (input.coupon) {
-    if (input.coupon.stackable) {
+  if (validatedCoupon) {
+    if (validatedCoupon.stackable) {
       couponDiscountCents = rawCouponDiscountCents
       totalDiscountCents = Math.min(subtotalCents, volumeDiscountCents + couponDiscountCents)
       discountLabel = volumeDiscountCents > 0 ? 'Descuento por volumen + cupón' : 'Cupón'
@@ -82,7 +83,7 @@ export function calculateBookTotals(input: {
     subtotalCents,
     volumeDiscountPercent,
     volumeDiscountCents,
-    couponCode: input.coupon ? normalizeCouponCode(input.coupon.code) : null,
+    couponCode: validatedCoupon ? normalizeCouponCode(validatedCoupon.code) : null,
     couponDiscountCents,
     totalDiscountCents,
     shippingChargedCents: FREE_MEXICO_SHIPPING_CENTS,
@@ -95,6 +96,26 @@ export function getVolumeDiscountPercent(quantity: number): number {
   if (quantity === 10) return 20
   if (quantity >= 5) return 10
   return 0
+}
+
+function assertValidCoupon(coupon: CouponForTotals): CouponForTotals {
+  if (coupon.type !== 'percent' && coupon.type !== 'fixed') {
+    throw new Error('Cupón inválido.')
+  }
+
+  if (typeof coupon.value !== 'number' || !Number.isFinite(coupon.value)) {
+    throw new Error('Cupón inválido.')
+  }
+
+  if (coupon.type === 'percent' && (coupon.value < 0 || coupon.value > 100)) {
+    throw new Error('Cupón inválido.')
+  }
+
+  if (coupon.type === 'fixed' && coupon.value < 0) {
+    throw new Error('Cupón inválido.')
+  }
+
+  return coupon
 }
 
 function calculateCouponDiscountCents(subtotalCents: number, coupon: CouponForTotals): number {
