@@ -31,5 +31,9 @@ export async function readJson<T>(req: Request): Promise<T> {
 }
 
 export function getSiteUrl(req: Request): string {
-  return process.env.SITE_URL || req.headers.get('origin') || new URL(req.url).origin
+  return normalizeSiteUrl(process.env.SITE_URL || req.headers.get('origin') || new URL(req.url).origin)
+}
+
+function normalizeSiteUrl(value: string): string {
+  return value.replace(/\/+$/, '')
 }
