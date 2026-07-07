@@ -25,6 +25,10 @@ export const BOOK_STORE_COPY = {
   supportEmail: 'oz@expocuspide.com',
   heroImages: [
     {
+      src: '/assets/book/hazlo-magnifico-portada-completa.jpg',
+      alt: 'Portada completa del libro Hazlo Magnífico con contraportada y lomo.',
+    },
+    {
       src: '/assets/book/hazlo-magnifico-portada-manos.jpg',
       alt: 'Libro Hazlo Magnífico de Oz Creativo sostenido con ambas manos.',
     },

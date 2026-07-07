@@ -154,8 +154,7 @@ function HeroBookCarousel() {
         </div>
       </div>
 
-      <figcaption className="flex items-center justify-between gap-4 border-t border-yellow/25 bg-ink/75 px-4 py-3 text-xs uppercase text-muted [letter-spacing:0]">
-        <span>Fotos del libro</span>
+      <figcaption className="flex items-center justify-end gap-4 border-t border-yellow/25 bg-ink/75 px-4 py-3 text-xs uppercase text-muted [letter-spacing:0]">
         <div className="flex gap-2">
           {BOOK_STORE_COPY.heroImages.map((image, index) => (
             <button

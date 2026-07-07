@@ -39,6 +39,7 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   assert.equal(pageSource.includes('BOOK_STORE_COPY.heroImages.map'), true)
   assert.equal(pageSource.includes('Anterior imagen del libro'), true)
   assert.equal(pageSource.includes('Siguiente imagen del libro'), true)
+  assert.equal(pageSource.includes('Fotos del libro'), false)
   assert.equal(pageSource.includes('ProductStorySection'), true)
   assert.equal(pageSource.includes('BookReviewsSection'), true)
   assert.equal(pageSource.includes('BookFaqSection'), true)
@@ -99,6 +100,7 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
     'public/assets/book/hazlo-magnifico-portada-manos.jpg',
     'public/assets/book/hazlo-magnifico-abierto.jpg',
     'public/assets/book/hazlo-magnifico-detalle-portada.jpg',
+    'public/assets/book/hazlo-magnifico-portada-completa.jpg',
   ]) {
     assert.equal(existsSync(asset), true)
     assert.equal(copySource.includes(asset.replace('public', '')), true)
