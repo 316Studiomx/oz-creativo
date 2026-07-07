@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, sql } from 'drizzle-orm'
 
 import { BOOK_SKU } from './constants.mts'
 import type { BookTotals } from './pricing.mts'
@@ -201,15 +201,6 @@ export async function recordStripeEvent(stripeEventId: string, type: string) {
 export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
   const { db, schema } = await getDbModule()
   return db.transaction(async (tx) => {
-    const [recordedEvent] = await tx
-      .insert(schema.processedStripeEvents)
-      .values({
-        stripeEventId: input.stripeEventId,
-        type: input.stripeEventType,
-      })
-      .onConflictDoNothing()
-      .returning()
-
     const [order] = await tx
       .select()
       .from(schema.orders)
@@ -220,7 +211,20 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
       return null
     }
 
-    if (!recordedEvent || TERMINAL_OR_LOCKED_PAID_STATES.has(order.status as BookOrderStatus)) {
+    const [recordedEvent] = await tx
+      .insert(schema.processedStripeEvents)
+      .values({
+        stripeEventId: input.stripeEventId,
+        type: input.stripeEventType,
+      })
+      .onConflictDoNothing()
+      .returning()
+
+    if (!recordedEvent) {
+      return order
+    }
+
+    if (TERMINAL_OR_LOCKED_PAID_STATES.has(order.status as BookOrderStatus)) {
       return order
     }
 
@@ -294,14 +298,43 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
 
     const now = new Date()
 
-    await tx
+    const [updatedInventory] = await tx
       .update(schema.inventory)
       .set({
         stockAvailable: sql`${schema.inventory.stockAvailable} - ${item.quantity}`,
         stockSold: sql`${schema.inventory.stockSold} + ${item.quantity}`,
         updatedAt: now,
       })
-      .where(eq(schema.inventory.id, stock.id))
+      .where(and(eq(schema.inventory.id, stock.id), gte(schema.inventory.stockAvailable, item.quantity)))
+      .returning()
+
+    if (!updatedInventory) {
+      const [updatedOrder] = await tx
+        .update(schema.orders)
+        .set({
+          status: 'label_error',
+          paymentStatus: 'paid',
+          shippingStatus: 'inventory_review',
+          stripePaymentIntentId: input.paymentIntentId,
+          paidAt: now,
+          updatedAt: now,
+        })
+        .where(eq(schema.orders.id, order.id))
+        .returning()
+
+      await tx.insert(schema.orderEvents).values({
+        orderId: order.id,
+        type: 'inventory_review',
+        message: 'Pago confirmado sin inventario suficiente para surtir.',
+        metadata: {
+          stripeEventId: input.stripeEventId,
+          requestedQuantity: item.quantity,
+          stockAvailable: stock.stockAvailable,
+        },
+      })
+
+      return updatedOrder ?? order
+    }
 
     await tx.insert(schema.inventoryMovements).values({
       productId: item.productId,

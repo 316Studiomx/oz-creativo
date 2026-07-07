@@ -2,6 +2,9 @@ type HeaderShape = HeadersInit | undefined
 
 export function jsonResponse(body: unknown, status = 200, headers?: HeaderShape): Response {
   const responseHeaders = new Headers(headers)
+  if (!responseHeaders.has('cache-control')) {
+    responseHeaders.set('cache-control', 'private, no-store')
+  }
   if (!responseHeaders.has('content-type')) {
     responseHeaders.set('content-type', 'application/json; charset=utf-8')
   }
