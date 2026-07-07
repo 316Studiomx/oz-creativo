@@ -13,9 +13,13 @@ export async function postJson<T>(url: string, body: unknown): Promise<T> {
   return result as T
 }
 
-export async function getJson<T>(url: string): Promise<T> {
+export async function getJson<T>(
+  url: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<T> {
   const response = await fetch(url, {
     headers: { Accept: 'application/json' },
+    signal: options.signal,
   })
   const result = await readResponseBody(response)
 

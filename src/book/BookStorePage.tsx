@@ -6,12 +6,12 @@ export function BookStorePage() {
   return (
     <main className="min-h-screen bg-ink text-paper">
       <section className="container-x grid gap-10 pb-16 pt-20 md:pt-24 lg:grid-cols-[minmax(0,1fr)_440px] lg:items-start">
-        <div className="min-w-0">
+        <div className="min-w-0 overflow-hidden">
           <a href="/" className="link-underline text-sm font-semibold text-yellow">
             OZ CREATIVO
           </a>
           <p className="mt-10 text-xs uppercase tracking-[0.3em] text-yellow">/ Libro físico</p>
-          <h1 className="display mt-6 text-6xl [letter-spacing:0] sm:text-7xl md:text-8xl lg:text-9xl">
+          <h1 className="display mt-6 max-w-full break-words text-5xl [letter-spacing:0] sm:text-6xl md:text-8xl lg:text-9xl">
             {BOOK_STORE_COPY.title}
           </h1>
           <p className="mt-5 max-w-2xl text-xl leading-tight text-paper/90 md:text-2xl">
@@ -21,11 +21,11 @@ export function BookStorePage() {
             {BOOK_STORE_COPY.hero}
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 grid max-w-full grid-cols-1 gap-3 sm:flex sm:flex-wrap">
             {BOOK_STORE_COPY.details.map((detail) => (
               <span
                 key={detail}
-                className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-paper/85"
+                className="min-w-0 max-w-full break-words rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-paper/85"
               >
                 {detail}
               </span>

@@ -47,6 +47,17 @@ type MarkOrderPaidInput = {
   stripeEventType: string
 }
 
+type InternationalQuoteLeadInput = {
+  name: string
+  email: string
+  whatsapp: string
+  country: string
+  city: string
+  postalCode: string
+  quantity: number
+  message?: string
+}
+
 export type BookOrderRecord = {
   id: number
 }
@@ -65,6 +76,22 @@ export type PaidOrderEmailSummary = {
   quantity: number
   totalCents: number
   address: string
+}
+
+export type PublicOrderStatus = {
+  orderNumber: string
+  quantity?: number
+  paymentStatus: string
+  shipmentStatus: string
+  shippingStatus: string
+  status: string
+  totalCents: number
+  totalPaid: string
+  addressSummary?: string
+  trackingCarrier?: string
+  trackingService?: string
+  trackingNumber?: string
+  trackingUrl?: string
 }
 
 type ShippingAddressForDisplay = {
@@ -246,6 +273,92 @@ export async function attachStripeSession(orderId: number, sessionId: string) {
 export async function listRecentOrders(limit = 50) {
   const { db, schema } = await getDbModule()
   return db.select().from(schema.orders).orderBy(desc(schema.orders.createdAt)).limit(limit)
+}
+
+export async function createInternationalQuoteLead(input: InternationalQuoteLeadInput) {
+  const { db, schema } = await getDbModule()
+  const [lead] = await db
+    .insert(schema.internationalQuoteLeads)
+    .values({
+      name: input.name,
+      email: input.email,
+      whatsapp: input.whatsapp,
+      country: input.country,
+      city: input.city,
+      postalCode: input.postalCode,
+      quantity: input.quantity,
+      message: input.message || null,
+    })
+    .returning({
+      id: schema.internationalQuoteLeads.id,
+      status: schema.internationalQuoteLeads.status,
+    })
+
+  return lead ?? null
+}
+
+export async function findPublicOrderStatus(
+  orderNumber: string,
+  token: string,
+): Promise<PublicOrderStatus | null> {
+  const normalizedOrderNumber = orderNumber.trim()
+  const normalizedToken = token.trim()
+
+  if (!normalizedOrderNumber || !normalizedToken) {
+    return null
+  }
+
+  const { db, schema } = await getDbModule()
+  const [record] = await db
+    .select({
+      orderNumber: schema.orders.orderNumber,
+      paymentStatus: schema.orders.paymentStatus,
+      orderShippingStatus: schema.orders.shippingStatus,
+      status: schema.orders.status,
+      totalCents: schema.orders.totalCents,
+      currency: schema.orders.currency,
+      quantity: schema.orderItems.quantity,
+      city: schema.shippingAddresses.city,
+      state: schema.shippingAddresses.state,
+      shipmentStatus: schema.shipments.status,
+      trackingCarrier: schema.shipments.carrier,
+      trackingService: schema.shipments.service,
+      trackingNumber: schema.shipments.trackingNumber,
+      trackingUrl: schema.shipments.trackingUrl,
+    })
+    .from(schema.orders)
+    .leftJoin(schema.orderItems, eq(schema.orderItems.orderId, schema.orders.id))
+    .leftJoin(schema.shippingAddresses, eq(schema.shippingAddresses.orderId, schema.orders.id))
+    .leftJoin(schema.shipments, eq(schema.shipments.orderId, schema.orders.id))
+    .where(
+      and(
+        eq(schema.orders.orderNumber, normalizedOrderNumber),
+        eq(schema.orders.publicToken, normalizedToken),
+      ),
+    )
+    .limit(1)
+
+  if (!record) {
+    return null
+  }
+
+  const shippingStatus = record.shipmentStatus || record.orderShippingStatus
+
+  return {
+    orderNumber: record.orderNumber,
+    quantity: record.quantity ?? undefined,
+    paymentStatus: record.paymentStatus,
+    shipmentStatus: shippingStatus,
+    shippingStatus,
+    status: record.status,
+    totalCents: record.totalCents,
+    totalPaid: formatPublicMoney(record.totalCents, record.currency),
+    addressSummary: formatAddressSummary(record.city, record.state),
+    trackingCarrier: record.trackingCarrier ?? undefined,
+    trackingService: record.trackingService ?? undefined,
+    trackingNumber: record.trackingNumber ?? undefined,
+    trackingUrl: record.trackingUrl ?? undefined,
+  }
 }
 
 export async function loadPaidOrderEmailSummary(
@@ -560,5 +673,21 @@ function buildMarkOrderPaidByStripeResult(
   return {
     order,
     shouldSendPaidEmails,
+  }
+}
+
+function formatAddressSummary(city: string | null, state: string | null): string | undefined {
+  const summary = [city, state].filter(Boolean).join(', ')
+  return summary || undefined
+}
+
+function formatPublicMoney(cents: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: currency || 'MXN',
+    }).format(cents / 100)
+  } catch {
+    return `$${(cents / 100).toLocaleString('es-MX')} ${currency || 'MXN'}`
   }
 }

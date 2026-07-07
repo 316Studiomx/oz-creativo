@@ -90,7 +90,13 @@ export function BookCheckoutForm() {
       )
 
       if (result.checkoutUrl) {
-        window.location.href = result.checkoutUrl
+        const checkoutUrl = safeCheckoutUrl(result.checkoutUrl)
+        if (!checkoutUrl) {
+          setMessage('Stripe devolvió un link de pago inválido. Escríbenos para ayudarte.')
+          return
+        }
+
+        window.location.href = checkoutUrl
         return
       }
 
@@ -334,4 +340,16 @@ function TextArea(props: {
 function clampQuantity(value: number): number {
   if (!Number.isFinite(value)) return 1
   return Math.min(10, Math.max(1, Math.trunc(value)))
+}
+
+function safeCheckoutUrl(value: string): string | null {
+  try {
+    const url = new URL(value)
+    if (url.protocol === 'javascript:') return null
+    if (url.protocol === 'https:') return url.toString()
+    if (url.protocol === 'http:' && url.hostname === 'localhost') return url.toString()
+    return null
+  } catch {
+    return null
+  }
 }

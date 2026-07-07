@@ -15,8 +15,11 @@ type OrderLookupResponse = {
     quantity?: number
     paymentStatus?: string
     shipmentStatus?: string
+    shippingStatus?: string
     status?: string
     totalPaid?: string
+    trackingCarrier?: string
+    trackingService?: string
     trackingNumber?: string
     trackingUrl?: string
     addressSummary?: string
@@ -43,7 +46,7 @@ export function OrderStatusPage({ orderNumber }: OrderStatusPageProps) {
     const controller = new AbortController()
     const url = `/api/book/orders/${encodeURIComponent(orderNumber)}?token=${encodeURIComponent(token)}`
 
-    getJson<OrderLookupResponse>(url)
+    getJson<OrderLookupResponse>(url, { signal: controller.signal })
       .then((data) => {
         if (controller.signal.aborted) return
         setState({ status: 'ready', data })
@@ -109,10 +112,14 @@ function OrderStatusDetails(props: { orderNumber: string; response: OrderLookupR
     ['Pedido', order.orderNumber || props.orderNumber],
     ['Cantidad', order.quantity ? `${order.quantity}` : 'Pendiente de confirmar'],
     ['Pago', order.paymentStatus || order.status || 'Pendiente'],
-    ['Envío', order.shipmentStatus || 'En preparación'],
+    ['Envío', order.shipmentStatus || order.shippingStatus || 'En preparación'],
     ['Total', order.totalPaid || 'Confirmado por Stripe'],
     ['Dirección', order.addressSummary || 'Guardada en tu orden'],
   ]
+  const trackingHref = safeTrackingUrl(order.trackingUrl)
+  const hasTracking = Boolean(
+    order.trackingNumber || trackingHref || order.trackingCarrier || order.trackingService,
+  )
 
   return (
     <div>
@@ -126,21 +133,32 @@ function OrderStatusDetails(props: { orderNumber: string; response: OrderLookupR
         ))}
       </dl>
 
-      {order.trackingNumber || order.trackingUrl ? (
+      {hasTracking ? (
         <div className="mt-6 border border-yellow/30 bg-yellow/10 p-4">
           <p className="font-semibold text-paper">Rastreo</p>
+          {order.trackingCarrier || order.trackingService ? (
+            <p className="mt-2 text-sm text-paper/80">
+              {[order.trackingCarrier, order.trackingService].filter(Boolean).join(' · ')}
+            </p>
+          ) : null}
           {order.trackingNumber ? (
             <p className="mt-2 text-sm text-paper/80">Número: {order.trackingNumber}</p>
           ) : null}
-          {order.trackingUrl ? (
+          {trackingHref ? (
             <a
-              href={order.trackingUrl}
+              href={trackingHref}
               target="_blank"
               rel="noreferrer"
               className="mt-3 inline-flex rounded-full bg-yellow px-5 py-2.5 text-sm font-semibold text-ink"
             >
               Abrir rastreo
             </a>
+          ) : null}
+          {order.trackingUrl && !trackingHref ? (
+            <p className="mt-3 text-sm leading-relaxed text-paper/80">
+              El enlace automático de rastreo no está disponible. Usa el número de guía para
+              consultar directamente con la paquetería.
+            </p>
           ) : null}
         </div>
       ) : (
@@ -151,6 +169,20 @@ function OrderStatusDetails(props: { orderNumber: string; response: OrderLookupR
       )}
     </div>
   )
+}
+
+function safeTrackingUrl(value?: string): string | null {
+  if (!value) return null
+
+  try {
+    const url = new URL(value)
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
+      return url.toString()
+    }
+    return null
+  } catch {
+    return null
+  }
 }
 
 function StatusError({ message }: { message: string }) {
