@@ -68,6 +68,20 @@ export function nextShipmentStatusAfterLabel(): 'label_created' {
   return 'label_created'
 }
 
+export function nextOrderFulfillmentStateAfterPayment(): {
+  status: 'label_pending'
+  shippingStatus: 'label_pending'
+} {
+  return {
+    status: 'label_pending',
+    shippingStatus: 'label_pending',
+  }
+}
+
+export function createShipmentRowAfterPayment(): false {
+  return false
+}
+
 async function getDbModule() {
   return import('../../../../db/index.ts')
 }
@@ -348,24 +362,14 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
     const [updatedOrder] = await tx
       .update(schema.orders)
       .set({
-        status: 'label_pending',
+        ...nextOrderFulfillmentStateAfterPayment(),
         paymentStatus: 'paid',
-        shippingStatus: 'label_pending',
         stripePaymentIntentId: input.paymentIntentId,
         paidAt: now,
         updatedAt: now,
       })
       .where(eq(schema.orders.id, order.id))
       .returning()
-
-    await tx
-      .insert(schema.shipments)
-      .values({
-        orderId: order.id,
-        provider: 'skydropx',
-        status: 'label_pending',
-      })
-      .onConflictDoNothing()
 
     await tx.insert(schema.orderEvents).values({
       orderId: order.id,

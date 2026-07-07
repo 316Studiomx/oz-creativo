@@ -4,6 +4,8 @@ import test from 'node:test'
 import { jsonResponse } from '../netlify/functions/_shared/book/http.mts'
 import {
   canMarkPaid,
+  createShipmentRowAfterPayment,
+  nextOrderFulfillmentStateAfterPayment,
   nextShipmentStatusAfterLabel,
 } from '../netlify/functions/_shared/book/repositories.mts'
 
@@ -20,6 +22,14 @@ test('canMarkPaid rejects paid and terminal order states', () => {
 
 test('nextShipmentStatusAfterLabel returns label-created', () => {
   assert.equal(nextShipmentStatusAfterLabel(), 'label_created')
+})
+
+test('paid orders wait for fulfillment without creating shipment rows', () => {
+  assert.deepEqual(nextOrderFulfillmentStateAfterPayment(), {
+    status: 'label_pending',
+    shippingStatus: 'label_pending',
+  })
+  assert.equal(createShipmentRowAfterPayment(), false)
 })
 
 test('jsonResponse defaults to private no-store caching', async () => {
