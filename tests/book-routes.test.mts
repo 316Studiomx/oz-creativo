@@ -35,6 +35,10 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   const copySource = readFileSync('src/book/bookCopy.ts', 'utf8')
 
   assert.equal(pageSource.includes('PromoTicker'), true)
+  assert.equal(pageSource.includes('HeroBookCarousel'), true)
+  assert.equal(pageSource.includes('BOOK_STORE_COPY.heroImages.map'), true)
+  assert.equal(pageSource.includes('Anterior imagen del libro'), true)
+  assert.equal(pageSource.includes('Siguiente imagen del libro'), true)
   assert.equal(pageSource.includes('ProductStorySection'), true)
   assert.equal(pageSource.includes('BookReviewsSection'), true)
   assert.equal(pageSource.includes('BookFaqSection'), true)
@@ -46,6 +50,8 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   assert.match(copySource, /Caracter[ií]sticas/i)
   assert.match(copySource, /Reseñas/i)
   assert.match(copySource, /Preguntas frecuentes/i)
+  assert.equal(copySource.includes('heroLines'), true)
+  assert.equal((copySource.match(/Hazlo Magnífico/g) ?? []).length >= 4, true)
 
   for (const country of [
     'Estados Unidos',
@@ -68,6 +74,7 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
     'public/assets/book/hazlo-magnifico-detalle-portada.jpg',
   ]) {
     assert.equal(existsSync(asset), true)
+    assert.equal(copySource.includes(asset.replace('public', '')), true)
   }
 })
 

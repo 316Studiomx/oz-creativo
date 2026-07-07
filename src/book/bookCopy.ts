@@ -4,14 +4,41 @@ export const BOOK_STORE_COPY = {
   price: '$499 MXN',
   unitPrice: 499,
   promoTicker: 'Envío gratis comprando',
-  hero:
-    'Un libro físico para emprender con estrategia, fe, claridad y alma. Una lectura práctica para ordenar tus ideas, recuperar foco y construir algo rentable sin sacrificar tu propósito, tu familia ni tu paz. Envío gratis dentro de México.',
+  heroLines: [
+    'Este libro es para quien siente que tiene algo valioso que construir,',
+    'pero necesita volver a ordenar su mente, su mensaje y su corazón.',
+    'No es un manual frío ni una colección de frases bonitas;',
+    'es una guía práctica para emprender con dirección, carácter y alma.',
+    'Te ayuda a mirar tu idea con claridad comercial,',
+    'a entender qué vendes realmente y por qué alguien debería creer en eso.',
+    'También te confronta con la parte invisible del camino:',
+    'la prisa, el miedo, la comparación, el cansancio y la necesidad de aprobación.',
+    'Hazlo Magnífico es una invitación a crear algo rentable, sí,',
+    'pero también algo sano, honesto, útil y alineado con tu propósito.',
+    'Una lectura para volver a construir sin perderte en lo que estás construyendo.',
+    'Envío gratis dentro de México.',
+  ],
   synopsis:
     'Hazlo Magnífico reúne principios, historias y decisiones para construir algo rentable sin sacrificar lo que más importa: tu propósito, tu fe, tu familia y tu paz.',
   supportEmail: 'oz@expocuspide.com',
-  image: '/assets/book/hazlo-magnifico-portada-manos.jpg',
-  imageAlt:
-    'Libro Hazlo Magnífico de Oz Creativo sostenido con ambas manos.',
+  heroImages: [
+    {
+      src: '/assets/book/hazlo-magnifico-portada-manos.jpg',
+      alt: 'Libro Hazlo Magnífico de Oz Creativo sostenido con ambas manos.',
+    },
+    {
+      src: '/assets/book/hazlo-magnifico-lectura-oz.jpg',
+      alt: 'Oz Creativo leyendo Hazlo Magnífico en un espacio amarillo.',
+    },
+    {
+      src: '/assets/book/hazlo-magnifico-abierto.jpg',
+      alt: 'Libro Hazlo Magnífico abierto en manos de Oz Creativo.',
+    },
+    {
+      src: '/assets/book/hazlo-magnifico-detalle-portada.jpg',
+      alt: 'Detalle de la portada amarilla del libro Hazlo Magnífico.',
+    },
+  ],
   learn: [
     'Ordenar ideas, ambición, fe y ejecución.',
     'Construir una propuesta con claridad comercial.',
@@ -35,20 +62,6 @@ export const BOOK_STORE_COPY = {
     { label: 'Peso', value: 'Aprox. 180 g por libro' },
     { label: 'Materiales', value: 'Portada a color e interiores impresos en papel editorial' },
     { label: 'Envío', value: 'Gratis dentro de México' },
-  ],
-  gallery: [
-    {
-      src: '/assets/book/hazlo-magnifico-lectura-oz.jpg',
-      alt: 'Oz Creativo leyendo Hazlo Magnífico en un espacio amarillo.',
-    },
-    {
-      src: '/assets/book/hazlo-magnifico-abierto.jpg',
-      alt: 'Libro Hazlo Magnífico abierto en manos de Oz Creativo.',
-    },
-    {
-      src: '/assets/book/hazlo-magnifico-detalle-portada.jpg',
-      alt: 'Detalle de la portada amarilla del libro Hazlo Magnífico.',
-    },
   ],
   reviewsTitle: 'Reseñas',
   reviews: [

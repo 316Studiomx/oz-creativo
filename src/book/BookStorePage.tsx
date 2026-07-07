@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { BookCheckoutForm } from './BookCheckoutForm'
 import { InternationalQuoteForm } from './InternationalQuoteForm'
 import { BOOK_STORE_COPY } from './bookCopy'
@@ -19,9 +21,11 @@ export function BookStorePage() {
           <p className="mt-5 max-w-2xl text-xl leading-tight text-paper/90 md:text-2xl">
             {BOOK_STORE_COPY.subtitle}
           </p>
-          <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted md:text-lg">
-            {BOOK_STORE_COPY.hero}
-          </p>
+          <div className="mt-6 grid max-w-2xl gap-1 text-base leading-relaxed text-muted md:text-lg">
+            {BOOK_STORE_COPY.heroLines.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
 
           <div className="mt-8 grid max-w-full grid-cols-1 gap-3 sm:flex sm:flex-wrap">
             {BOOK_STORE_COPY.details.map((detail) => (
@@ -34,13 +38,7 @@ export function BookStorePage() {
             ))}
           </div>
 
-          <figure className="mt-12 overflow-hidden rounded-lg border border-yellow/25 bg-yellow/10 lg:mt-28">
-            <img
-              src={BOOK_STORE_COPY.image}
-              alt={BOOK_STORE_COPY.imageAlt}
-              className="max-h-[640px] w-full object-cover object-center"
-            />
-          </figure>
+          <HeroBookCarousel />
         </div>
 
         <BookCheckoutForm />
@@ -100,6 +98,77 @@ export function BookStorePage() {
   )
 }
 
+function HeroBookCarousel() {
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const lastImageIndex = BOOK_STORE_COPY.heroImages.length - 1
+
+  const showPreviousImage = () => {
+    setActiveImageIndex((currentIndex) =>
+      currentIndex === 0 ? lastImageIndex : currentIndex - 1,
+    )
+  }
+
+  const showNextImage = () => {
+    setActiveImageIndex((currentIndex) =>
+      currentIndex === lastImageIndex ? 0 : currentIndex + 1,
+    )
+  }
+
+  return (
+    <figure className="mt-14 overflow-hidden rounded-lg border border-yellow/25 bg-yellow/10 lg:mt-44">
+      <div className="relative aspect-[16/11] max-h-[680px] overflow-hidden">
+        {BOOK_STORE_COPY.heroImages.map((image, index) => (
+          <img
+            key={image.src}
+            src={image.src}
+            alt={image.alt}
+            className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-500 ${
+              index === activeImageIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+            loading={index === 0 ? 'eager' : 'lazy'}
+          />
+        ))}
+
+        <div className="absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-between">
+          <button
+            type="button"
+            aria-label="Anterior imagen del libro"
+            onClick={showPreviousImage}
+            className="grid size-11 place-items-center rounded-full border border-yellow/40 bg-ink/70 text-lg font-black text-yellow shadow-[0_0_24px_rgba(255,221,0,0.25)] backdrop-blur transition hover:bg-yellow hover:text-ink"
+          >
+            {'<'}
+          </button>
+          <button
+            type="button"
+            aria-label="Siguiente imagen del libro"
+            onClick={showNextImage}
+            className="grid size-11 place-items-center rounded-full border border-yellow/40 bg-ink/70 text-lg font-black text-yellow shadow-[0_0_24px_rgba(255,221,0,0.25)] backdrop-blur transition hover:bg-yellow hover:text-ink"
+          >
+            {'>'}
+          </button>
+        </div>
+      </div>
+
+      <figcaption className="flex items-center justify-between gap-4 border-t border-yellow/25 bg-ink/75 px-4 py-3 text-xs uppercase text-muted [letter-spacing:0]">
+        <span>Fotos del libro</span>
+        <div className="flex gap-2">
+          {BOOK_STORE_COPY.heroImages.map((image, index) => (
+            <button
+              key={image.src}
+              type="button"
+              aria-label={`Ver imagen ${index + 1} del libro`}
+              onClick={() => setActiveImageIndex(index)}
+              className={`size-2.5 rounded-full transition ${
+                index === activeImageIndex ? 'bg-yellow' : 'bg-white/25 hover:bg-white/50'
+              }`}
+            />
+          ))}
+        </div>
+      </figcaption>
+    </figure>
+  )
+}
+
 function PromoTicker() {
   const tickerItems = Array.from({ length: 8 }, (_, index) => index)
 
@@ -141,12 +210,12 @@ function ProductStorySection() {
         </div>
       </div>
 
-      <div className="mt-12 grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+      <div className="mt-12">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-yellow">
             {BOOK_STORE_COPY.specsTitle}
           </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {BOOK_STORE_COPY.specs.map((spec) => (
               <div
                 key={spec.label}
@@ -159,22 +228,6 @@ function ProductStorySection() {
               </div>
             ))}
           </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          {BOOK_STORE_COPY.gallery.map((image) => (
-            <figure
-              key={image.src}
-              className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]"
-            >
-              <img
-                src={image.src}
-                alt={image.alt}
-                className="aspect-[4/5] w-full object-cover transition-transform duration-500 hover:scale-[1.03]"
-                loading="lazy"
-              />
-            </figure>
-          ))}
         </div>
       </div>
     </section>
