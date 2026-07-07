@@ -246,6 +246,8 @@ function OrderDetailPanel({
   const [shippingLoading, setShippingLoading] = useState(false)
   const [shippingMessage, setShippingMessage] = useState('')
   const [shippingError, setShippingError] = useState('')
+  const safeTrackingUrl = safeHttpUrl(shipment?.trackingUrl)
+  const safeLabelUrl = safeHttpUrl(shipment?.labelUrl)
 
   const quoteShipping = async () => {
     setShippingLoading(true)
@@ -337,25 +339,31 @@ function OrderDetailPanel({
             <p className="mt-1 text-sm text-paper">Guía: {shipment.trackingNumber}</p>
           ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
-            {shipment?.trackingUrl ? (
+            {safeTrackingUrl ? (
               <a
                 className="rounded border border-paper/15 px-3 py-2 text-xs font-semibold text-paper hover:border-yellow hover:text-yellow"
-                href={shipment.trackingUrl}
+                href={safeTrackingUrl}
                 rel="noreferrer"
                 target="_blank"
               >
                 Abrir rastreo
               </a>
             ) : null}
-            {shipment?.labelUrl ? (
+            {shipment?.trackingUrl && !safeTrackingUrl ? (
+              <span className="text-xs text-muted">Rastreo manual: URL no válida</span>
+            ) : null}
+            {safeLabelUrl ? (
               <a
                 className="rounded border border-paper/15 px-3 py-2 text-xs font-semibold text-paper hover:border-yellow hover:text-yellow"
-                href={shipment.labelUrl}
+                href={safeLabelUrl}
                 rel="noreferrer"
                 target="_blank"
               >
                 Abrir etiqueta
               </a>
+            ) : null}
+            {shipment?.labelUrl && !safeLabelUrl ? (
+              <span className="text-xs text-muted">Etiqueta sin URL válida</span>
             ) : null}
           </div>
           {shipment?.error ? <p className="mt-1 text-sm text-red-100">{shipment.error}</p> : null}
@@ -422,4 +430,14 @@ function OrderDetailPanel({
 
 function canManageShipping(order: Pick<AdminOrder, 'paymentStatus' | 'shippingStatus'>): boolean {
   return order.paymentStatus === 'paid' && (order.shippingStatus === 'label_pending' || order.shippingStatus === 'label_error')
+}
+
+function safeHttpUrl(value?: string | null): string | null {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
+  } catch {
+    return null
+  }
 }

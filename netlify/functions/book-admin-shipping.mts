@@ -201,6 +201,7 @@ function buildShipmentInput(detail: NonNullable<Awaited<ReturnType<typeof getAdm
     destination: {
       name: detail.address.name || detail.order.customerName,
       phone: detail.address.phone || detail.order.customerPhone,
+      email: detail.order.customerEmail,
       street: detail.address.street,
       exteriorNumber: detail.address.exteriorNumber,
       interiorNumber: detail.address.interiorNumber,
@@ -209,6 +210,7 @@ function buildShipmentInput(detail: NonNullable<Awaited<ReturnType<typeof getAdm
       state: detail.address.state,
       postalCode: detail.address.postalCode,
       country: detail.address.country || 'MX',
+      reference: detail.address.references,
     },
     parcel: calculateBookParcel(item.quantity),
   }

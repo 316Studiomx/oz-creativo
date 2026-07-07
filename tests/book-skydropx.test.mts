@@ -5,6 +5,7 @@ import {
   SKYDROPX_ENDPOINTS,
   buildSkydropxQuotationBody,
   buildSkydropxShipmentBody,
+  assertSkydropxShipmentReady,
   normalizeSkydropxRate,
   normalizeSkydropxRates,
   normalizeSkydropxShipment,
@@ -70,6 +71,28 @@ test('normalizes flat Skydropx rate fixtures', () => {
       totalCents: 14550,
       currency: 'MXN',
       estimatedDays: 2,
+    },
+  )
+})
+
+test('normalizes current Skydropx rate service and currency fields', () => {
+  assert.deepEqual(
+    normalizeSkydropxRate({
+      id: 'rate_3',
+      provider_name: 'DHL',
+      provider_service_name: 'Express Domestic',
+      provider_service_code: 'EXP',
+      amount: '180.50',
+      currency_code: 'MXN',
+      delivery_days: '1',
+    }),
+    {
+      rateId: 'rate_3',
+      carrier: 'DHL',
+      service: 'Express Domestic',
+      totalCents: 18050,
+      currency: 'MXN',
+      estimatedDays: 1,
     },
   )
 })
@@ -222,50 +245,116 @@ test('builds Skydropx quotation body using kg parcel weight and required address
 })
 
 test('builds shipment body with selected rate and package options', () => {
-  assert.deepEqual(
-    buildSkydropxShipmentBody({
-      rateId: 'rate_1',
-      origin,
-      destination,
-      parcel: {
-        lengthCm: 24,
-        widthCm: 17,
-        heightCm: 3,
-        weightGrams: 300,
-      },
-      declaredValueCents: 49900,
-      consignmentNote: 'Hazlo Magnifico',
-      packageType: 'box',
-    }),
-    {
-      shipment: {
-        rate_id: 'rate_1',
-        unique_shipment: true,
-        address_from: buildSkydropxQuotationBody({
-          origin,
-          destination,
-          parcel: { lengthCm: 1, widthCm: 1, heightCm: 1, weightGrams: 1 },
-        }).quotation.address_from,
-        address_to: buildSkydropxQuotationBody({
-          origin,
-          destination,
-          parcel: { lengthCm: 1, widthCm: 1, heightCm: 1, weightGrams: 1 },
-        }).quotation.address_to,
-        packages: [
-          {
-            package_number: '1',
-            package_protected: false,
-            declared_value: 499,
-            length: 24,
-            width: 17,
-            height: 3,
-            weight: 0.3,
-            consignment_note: 'Hazlo Magnifico',
-            package_type: 'box',
-          },
-        ],
-      },
+  const shipmentDestination = {
+    ...destination,
+    email: 'lector@example.com',
+    company: 'Lector SA',
+    reference: 'Porton azul',
+  }
+
+  const body = buildSkydropxShipmentBody({
+    quotationId: 'quotation_1',
+    rateId: 'rate_1',
+    origin,
+    destination: shipmentDestination,
+    parcel: {
+      lengthCm: 24,
+      widthCm: 17,
+      heightCm: 3,
+      weightGrams: 300,
     },
+    declaredValueCents: 49900,
+    consignmentNote: 'Hazlo Magnifico',
+    packageType: 'box',
+  })
+
+  assert.equal(body.shipment.quotation_id, 'quotation_1')
+  assert.equal(body.shipment.rate_id, 'rate_1')
+  assert.equal(body.shipment.unique_shipment, true)
+  assert.deepEqual(body.shipment.packages, [
+    {
+      package_number: '1',
+      package_protected: false,
+      declared_value: 499,
+      length: 24,
+      width: 17,
+      height: 3,
+      weight: 0.3,
+      consignment_note: 'Hazlo Magnifico',
+      package_type: 'box',
+    },
+  ])
+})
+
+test('shipment address body carries email company reference and conservative aliases', () => {
+  const body = buildSkydropxShipmentBody({
+    rateId: 'rate_1',
+    origin,
+    destination: {
+      ...destination,
+      email: 'lector@example.com',
+      company: 'Lector SA',
+      reference: 'Porton azul',
+    },
+    parcel: {
+      lengthCm: 24,
+      widthCm: 17,
+      heightCm: 3,
+      weightGrams: 300,
+    },
+  })
+
+  assert.deepEqual(body.shipment.address_to, {
+    name: 'Lector Magnifico',
+    company: 'Lector SA',
+    phone: '8111111111',
+    email: 'lector@example.com',
+    street1: 'Calle Destino',
+    street2: '22 Int. B',
+    country_code: 'MX',
+    postal_code: '06700',
+    area_level1: 'Ciudad de Mexico',
+    area_level2: 'Cuauhtemoc',
+    area_level3: 'Roma Norte',
+    province: 'Ciudad de Mexico',
+    city: 'Cuauhtemoc',
+    neighborhood: 'Roma Norte',
+    reference: 'Porton azul',
+    further_information: 'Porton azul',
+    apartment_number: 'B',
+  })
+  assert.equal(body.shipment.address_from.company, 'Oz Creativo')
+  assert.equal(body.shipment.address_from.email, 'pedidos@example.com')
+})
+
+test('shipment creation guard rejects missing tracking number or label URL', () => {
+  assert.throws(
+    () =>
+      assertSkydropxShipmentReady({
+        shipmentId: 'ship_1',
+        carrier: 'DHL',
+        service: 'Express',
+        totalCents: 15000,
+        currency: 'MXN',
+        trackingNumber: '',
+        trackingUrl: 'https://tracking.example/TRACK123',
+        labelUrl: 'https://label.example/label.pdf',
+      }),
+    /tracking/,
+  )
+  assert.throws(
+    () =>
+      assertSkydropxShipmentReady({
+        shipmentId: 'ship_1',
+        carrier: 'DHL',
+        service: 'Express',
+        totalCents: 15000,
+        currency: 'MXN',
+        trackingNumber: 'TRACK123',
+        trackingUrl: 'https://tracking.example/TRACK123',
+        labelUrl: '',
+      }),
+    /etiqueta/,
   )
 })
 

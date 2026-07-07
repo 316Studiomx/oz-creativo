@@ -173,3 +173,13 @@ test('admin screens expose operational management fields', () => {
   assert.equal(emailsSource.includes('failed'), true)
   assert.equal(emailsSource.includes('retry'), true)
 })
+
+test('admin orders renders shipment URLs only after safe http validation', () => {
+  const ordersSource = readFileSync('src/admin/AdminOrders.tsx', 'utf8')
+
+  assert.equal(ordersSource.includes('safeHttpUrl'), true)
+  assert.equal(ordersSource.includes('href={shipment.trackingUrl}'), false)
+  assert.equal(ordersSource.includes('href={shipment.labelUrl}'), false)
+  assert.match(ordersSource, /URL\(value\)/)
+  assert.match(ordersSource, /url\.protocol === 'http:' \|\| url\.protocol === 'https:'/)
+})

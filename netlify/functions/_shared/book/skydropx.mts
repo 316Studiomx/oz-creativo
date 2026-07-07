@@ -31,6 +31,7 @@ export type SkydropxAddress = {
   state: string
   postalCode: string
   country: string
+  reference?: string | null
 }
 
 export type SkydropxParcel = {
@@ -96,6 +97,7 @@ export function buildSkydropxQuotationBody(input: {
 }
 
 export function buildSkydropxShipmentBody(input: {
+  quotationId?: string | null
   rateId: string
   origin: SkydropxAddress
   destination: SkydropxAddress
@@ -116,10 +118,11 @@ export function buildSkydropxShipmentBody(input: {
 
   return {
     shipment: {
+      ...(input.quotationId?.trim() ? { quotation_id: input.quotationId.trim() } : {}),
       rate_id: input.rateId,
       unique_shipment: true,
-      address_from: toSkydropxApiAddress(input.origin),
-      address_to: toSkydropxApiAddress(input.destination),
+      address_from: toSkydropxApiAddress(input.origin, { includeShipmentAliases: true }),
+      address_to: toSkydropxApiAddress(input.destination, { includeShipmentAliases: true }),
       packages: [pack],
     },
   }
@@ -172,8 +175,10 @@ export async function createShipment(
     method: 'POST',
     body: buildSkydropxShipmentBody(input),
   }, options)
+  const shipment = normalizeSkydropxShipment(raw)
+  assertSkydropxShipmentReady(shipment)
   return {
-    ...normalizeSkydropxShipment(raw),
+    ...shipment,
     raw,
   }
 }
@@ -199,10 +204,23 @@ export function normalizeSkydropxRate(raw: unknown): NormalizedSkydropxRate {
   const record = flattenJsonApiRecord(raw)
   return {
     rateId: readString(record, ['id', 'rate_id', 'rateId']),
-    carrier: readString(record, ['carrier', 'carrier_name', 'provider', 'provider_name']),
-    service: readString(record, ['service', 'service_level', 'service_level_name', 'service_name']),
+    carrier: readString(record, [
+      'carrier',
+      'carrier_name',
+      'provider',
+      'provider_name',
+      'provider_display_name',
+    ]),
+    service: readString(record, [
+      'service',
+      'service_level',
+      'service_level_name',
+      'service_name',
+      'provider_service_name',
+      'provider_service_code',
+    ]),
     totalCents: readMoneyCents(record, ['total', 'amount', 'price', 'total_price', 'cost']),
-    currency: readString(record, ['currency']) || 'MXN',
+    currency: readString(record, ['currency', 'currency_code', 'currencyCode']) || 'MXN',
     estimatedDays: readNullableNumber(record, ['days', 'estimated_days', 'eta_days', 'delivery_days']),
   }
 }
@@ -224,7 +242,7 @@ export function normalizeSkydropxShipment(raw: unknown): NormalizedSkydropxShipm
     carrier: readString(shipment, ['carrier', 'carrier_name', 'provider', 'provider_name']),
     service: readString(shipment, ['service', 'service_level', 'service_level_name', 'service_name']),
     totalCents: readNullableMoneyCents(shipment, ['total', 'amount', 'price', 'total_price', 'cost']),
-    currency: readString(shipment, ['currency']) || 'MXN',
+    currency: readString(shipment, ['currency', 'currency_code', 'currencyCode']) || 'MXN',
     trackingNumber,
     trackingUrl:
       readString(packageRecord, ['tracking_url_provider', 'tracking_url', 'trackingUrl']) ||
@@ -232,6 +250,15 @@ export function normalizeSkydropxShipment(raw: unknown): NormalizedSkydropxShipm
     labelUrl:
       readString(packageRecord, ['label_url', 'labelUrl']) ||
       readString(shipment, ['label_url', 'labelUrl']),
+  }
+}
+
+export function assertSkydropxShipmentReady(shipment: NormalizedSkydropxShipment): void {
+  if (!shipment.trackingNumber) {
+    throw new Error('Skydropx creo el envio sin tracking number; no se puede marcar como guia creada.')
+  }
+  if (!shipment.labelUrl) {
+    throw new Error('Skydropx creo el envio sin URL de etiqueta; no se puede marcar como guia creada.')
   }
 }
 
@@ -269,7 +296,10 @@ async function skydropxRequest(
   return payload
 }
 
-function toSkydropxApiAddress(address: SkydropxAddress) {
+function toSkydropxApiAddress(
+  address: SkydropxAddress,
+  options: { includeShipmentAliases?: boolean } = {},
+) {
   const apiAddress: Record<string, string> = {
     name: address.name,
     phone: address.phone,
@@ -283,6 +313,18 @@ function toSkydropxApiAddress(address: SkydropxAddress) {
   }
   if (address.company?.trim()) apiAddress.company = address.company.trim()
   if (address.email?.trim()) apiAddress.email = address.email.trim()
+  if (address.reference?.trim()) apiAddress.reference = address.reference.trim()
+
+  if (options.includeShipmentAliases) {
+    apiAddress.province = address.state
+    apiAddress.city = address.city
+    apiAddress.neighborhood = address.neighborhood
+    if (address.interiorNumber?.trim()) apiAddress.apartment_number = address.interiorNumber.trim()
+    if (address.reference?.trim()) {
+      apiAddress.further_information = address.reference.trim().slice(0, 70)
+    }
+  }
+
   return apiAddress
 }
 
