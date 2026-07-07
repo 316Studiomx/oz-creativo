@@ -44,6 +44,31 @@ html.lenis body {
   }
 }
 
+.admin-shell,
+.admin-shell * {
+  cursor: auto;
+}
+
+.admin-shell a,
+.admin-shell button,
+.admin-shell [role='button'],
+.admin-shell summary,
+.admin-shell select {
+  cursor: pointer;
+}
+
+.admin-shell input,
+.admin-shell textarea {
+  cursor: text;
+}
+
+.admin-shell button:disabled,
+.admin-shell input:disabled,
+.admin-shell textarea:disabled,
+.admin-shell select:disabled {
+  cursor: not-allowed;
+}
+
 @layer components {
   .container-x {
     @apply mx-auto w-full max-w-[1400px] px-6 md:px-10 lg:px-16;

@@ -10,6 +10,7 @@ const authFunctionPath = 'netlify/functions/book-admin-auth.mts'
 const appPath = 'src/App.tsx'
 const adminAppPath = 'src/admin/AdminApp.tsx'
 const adminLoginPath = 'src/admin/AdminLogin.tsx'
+const stylesPath = 'src/styles/index.css'
 const adminEmail = 'admin@ozcreativo.test'
 const adminPassword = 'correct-admin-password'
 
@@ -163,6 +164,18 @@ test('admin shell and login use credentialed requests', () => {
   assert.equal(loginSource.includes('/api/book/admin/login'), true)
   assert.equal(loginSource.includes("credentials: 'include'"), true)
   assert.equal(loginSource.includes('No se pudo iniciar sesión'), true)
+})
+
+test('admin shell restores the native cursor while the public site uses a custom cursor', () => {
+  const appSource = readFileSync(adminAppPath, 'utf8')
+  const loginSource = readFileSync(adminLoginPath, 'utf8')
+  const stylesSource = readFileSync(stylesPath, 'utf8')
+
+  assert.equal(appSource.includes('admin-shell'), true)
+  assert.equal(loginSource.includes('admin-shell'), true)
+  assert.match(stylesSource, /\.admin-shell[\s\S]*cursor: auto/)
+  assert.match(stylesSource, /\.admin-shell[\s\S]*button[\s\S]*cursor: pointer/)
+  assert.match(stylesSource, /\.admin-shell[\s\S]*input[\s\S]*cursor: text/)
 })
 
 function buildLoginRequest(payload: { email: string; password: string }): Request {

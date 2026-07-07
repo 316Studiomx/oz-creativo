@@ -88,7 +88,7 @@ export function AdminApp() {
 
   if (!session.ready) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-ink p-8 text-paper">
+      <main className="admin-shell flex min-h-screen items-center justify-center bg-ink p-8 text-paper">
         <p className="text-sm text-muted">Cargando...</p>
       </main>
     )
@@ -99,7 +99,7 @@ export function AdminApp() {
   }
 
   return (
-    <main className="min-h-screen bg-ink px-4 py-5 text-paper md:px-8">
+    <main className="admin-shell min-h-screen bg-ink px-4 py-5 text-paper md:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
         <header className="flex flex-col gap-4 border-b border-paper/10 pb-4 md:flex-row md:items-center md:justify-between">
           <div>

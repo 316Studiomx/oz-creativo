@@ -46,7 +46,7 @@ export function AdminLogin({ onLoggedIn }: AdminLoginProps) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-ink px-5 py-10 text-paper">
+    <main className="admin-shell flex min-h-screen items-center justify-center bg-ink px-5 py-10 text-paper">
       <section className="w-full max-w-[420px] rounded border border-paper/10 bg-paper/[0.04] p-6 shadow-2xl shadow-black/30">
         <p className="text-xs font-semibold uppercase text-yellow [letter-spacing:0]">Hazlo Magnífico</p>
         <h1 className="mt-3 font-display text-3xl font-bold uppercase leading-none [letter-spacing:0]">
