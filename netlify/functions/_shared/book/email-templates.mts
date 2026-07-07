@@ -103,6 +103,10 @@ export function renderInternalPaidOrderEmail(
 
 export function renderShipmentEmail(input: ShipmentEmailTemplateInput): RenderedTransactionalEmail {
   const subject = `Tu pedido de ${BOOK_TITLE} ya va en camino - ${input.orderNumber}`
+  const trackingUrl = safeTrackingUrl(input.trackingUrl)
+  const trackingText = trackingUrl
+    ? `Rastreo: ${trackingUrl}`
+    : `Rastreo manual: usa tu guía ${input.trackingNumber} con la paquetería o escríbenos a ${SUPPORT_EMAIL}.`
   const text = [
     subject,
     '',
@@ -111,7 +115,7 @@ export function renderShipmentEmail(input: ShipmentEmailTemplateInput): Rendered
     `Paquetería: ${input.carrier}`,
     `Servicio: ${input.service}`,
     `Guía: ${input.trackingNumber}`,
-    `Rastreo: ${input.trackingUrl}`,
+    trackingText,
     `Dirección de envío: ${input.address}`,
     'Te recomendamos estar pendiente de llamadas o mensajes de paquetería para facilitar la entrega.',
     '',
@@ -129,7 +133,7 @@ export function renderShipmentEmail(input: ShipmentEmailTemplateInput): Rendered
       ['Guía', input.trackingNumber],
       ['Dirección de envío', input.address],
     ])}
-    <p><a href="${escapeHtml(input.trackingUrl)}" style="display:inline-block;background:#ffd400;color:#111111;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:6px">Rastrear mi pedido</a></p>
+    ${trackingLinkHtml(trackingUrl, input.trackingNumber)}
     <p>Te recomendamos estar pendiente de llamadas o mensajes de paquetería para facilitar la entrega.</p>
   `)
 
@@ -156,6 +160,23 @@ export function escapeHtml(value: string): string {
 
 function formatBookQuantity(quantity: number): string {
   return `${quantity} ${quantity === 1 ? 'libro' : 'libros'}`
+}
+
+function safeTrackingUrl(value: string): string | null {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
+  } catch {
+    return null
+  }
+}
+
+function trackingLinkHtml(trackingUrl: string | null, trackingNumber: string): string {
+  if (!trackingUrl) {
+    return `<p>Rastrea manualmente con la guía <strong>${escapeHtml(trackingNumber)}</strong> o escríbenos a <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>`
+  }
+
+  return `<p><a href="${escapeHtml(trackingUrl)}" style="display:inline-block;background:#ffd400;color:#111111;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:6px">Rastrear mi pedido</a></p>`
 }
 
 function emailShell(body: string): string {

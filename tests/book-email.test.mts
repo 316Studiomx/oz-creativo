@@ -2,6 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  sendPaidOrderEmailsAfterStripeMark,
+  shouldSendPaidOrderEmailsForStripeMark,
+} from '../netlify/functions/book-stripe-webhook.mts'
+import {
   renderInternalPaidOrderEmail,
   renderPurchaseConfirmationEmail,
   renderShipmentEmail,
@@ -67,6 +71,22 @@ test('shipment email includes tracking button, carrier, service, address, and co
   assert.match(email.text, /TRACK123/)
   assert.match(email.text, /pendiente de llamadas o mensajes de paquetería/i)
   assert.match(email.text, /Calle 1 #2/)
+})
+
+test('shipment email does not render an unsafe tracking URL as a link', () => {
+  const email = renderShipmentEmail({
+    ...paidOrder,
+    carrier: 'DHL',
+    service: 'Express',
+    trackingNumber: 'TRACK123',
+    trackingUrl: 'javascript:alert(1)',
+  })
+
+  assert.doesNotMatch(email.html, /href="javascript:alert\(1\)"/i)
+  assert.doesNotMatch(email.html, /Rastrear mi pedido/)
+  assert.match(email.html, /TRACK123/)
+  assert.match(email.text, /rastreo manual/i)
+  assert.match(email.text, /oz@expocuspide.com/)
 })
 
 test('sendTransactionalEmail returns the provider id without real credentials when injected', async () => {
@@ -147,6 +167,55 @@ test('sendPaidOrderEmails sends customer and internal messages idempotently', as
   ])
 })
 
+test('sendPaidOrderEmails skips email events that already exist as sent', async () => {
+  const sent: string[] = []
+
+  await sendPaidOrderEmails(42, {
+    loadPaidOrderEmailSummary: async (orderId) => ({ ...paidOrder, orderId }),
+    createQueuedEmailEvent: async () => null,
+    markEmailEventSent: async () => {
+      throw new Error('No debio marcar enviado')
+    },
+    markEmailEventFailed: async () => {
+      throw new Error('No debio marcar fallido')
+    },
+    sendTransactionalEmail: async (input) => {
+      sent.push(input.to)
+      return 'provider_unused'
+    },
+  })
+
+  assert.deepEqual(sent, [])
+})
+
+test('sendPaidOrderEmails retries claimed failed email events', async () => {
+  const sent: string[] = []
+  const markedSent: Array<{ id: number; providerId: string }> = []
+
+  await sendPaidOrderEmails(42, {
+    loadPaidOrderEmailSummary: async (orderId) => ({ ...paidOrder, orderId }),
+    createQueuedEmailEvent: async (input) => ({
+      id: input.idempotencyKey.startsWith('purchase-confirmation') ? 77 : 78,
+    }),
+    markEmailEventSent: async (id, providerId) => {
+      markedSent.push({ id, providerId })
+    },
+    markEmailEventFailed: async () => {
+      throw new Error('No debio fallar')
+    },
+    sendTransactionalEmail: async (input) => {
+      sent.push(input.to)
+      return `retry_${sent.length}`
+    },
+  })
+
+  assert.deepEqual(sent, ['lector@example.com', 'oz@expocuspide.com'])
+  assert.deepEqual(markedSent, [
+    { id: 77, providerId: 'retry_1' },
+    { id: 78, providerId: 'retry_2' },
+  ])
+})
+
 test('sendPaidOrderEmails records failed email events and continues other sends', async () => {
   const failed: Array<{ id: number; message: string }> = []
   const sent: string[] = []
@@ -175,4 +244,45 @@ test('sendPaidOrderEmails records failed email events and continues other sends'
 
   assert.deepEqual(sent, ['lector@example.com', 'oz@expocuspide.com'])
   assert.deepEqual(failed, [{ id: 1, message: 'Resend rechazo el correo' }])
+})
+
+test('Stripe webhook email helper only sends for newly marked paid orders', async () => {
+  const nonEmailResult = {
+    order: { id: 42 },
+    shouldSendPaidEmails: false,
+  }
+  const emailResult = {
+    order: { id: 43 },
+    shouldSendPaidEmails: true,
+  }
+  const sent: number[] = []
+
+  assert.equal(shouldSendPaidOrderEmailsForStripeMark(null), false)
+  assert.equal(shouldSendPaidOrderEmailsForStripeMark(nonEmailResult), false)
+  assert.equal(shouldSendPaidOrderEmailsForStripeMark(emailResult), true)
+
+  await sendPaidOrderEmailsAfterStripeMark(nonEmailResult, async (orderId) => {
+    sent.push(orderId)
+  })
+  await sendPaidOrderEmailsAfterStripeMark(emailResult, async (orderId) => {
+    sent.push(orderId)
+  })
+
+  assert.deepEqual(sent, [43])
+})
+
+test('Stripe webhook email helper catches delivery failures', async () => {
+  const logged: unknown[] = []
+
+  await sendPaidOrderEmailsAfterStripeMark(
+    { order: { id: 42 }, shouldSendPaidEmails: true },
+    async () => {
+      throw new Error('Resend rechazo el correo')
+    },
+    (...args) => {
+      logged.push(args)
+    },
+  )
+
+  assert.equal(logged.length, 1)
 })

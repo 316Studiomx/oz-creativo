@@ -3,7 +3,10 @@ import Stripe from 'stripe'
 
 import { sendPaidOrderEmails } from './_shared/book/email-service.mts'
 import { jsonResponse, methodNotAllowed } from './_shared/book/http.mts'
-import { markOrderPaidByStripe } from './_shared/book/repositories.mts'
+import {
+  markOrderPaidByStripe,
+  type MarkOrderPaidByStripeResult,
+} from './_shared/book/repositories.mts'
 
 declare const Netlify: {
   env: {
@@ -52,23 +55,14 @@ export default async (req: Request) => {
     return jsonResponse({ received: true, ignored: true })
   }
 
-  const paidOrder = await markOrderPaidByStripe({
+  const paidOrderResult = await markOrderPaidByStripe({
     sessionId: session.id,
     paymentIntentId: extractPaymentIntentId(session.payment_intent),
     stripeEventId: event.id,
     stripeEventType: event.type,
   })
 
-  if (paidOrder) {
-    try {
-      await sendPaidOrderEmails(paidOrder.id)
-    } catch (error) {
-      console.error('Book paid-order email delivery failed.', {
-        orderId: paidOrder.id,
-        error: error instanceof Error ? error.message : String(error),
-      })
-    }
-  }
+  await sendPaidOrderEmailsAfterStripeMark(paidOrderResult)
 
   return jsonResponse({ received: true, ok: true })
 }
@@ -87,4 +81,29 @@ function extractPaymentIntentId(value: StripeCheckoutSession['payment_intent']):
   }
 
   return null
+}
+
+export function shouldSendPaidOrderEmailsForStripeMark(
+  result: MarkOrderPaidByStripeResult | null,
+): result is MarkOrderPaidByStripeResult {
+  return Boolean(result?.order && result.shouldSendPaidEmails)
+}
+
+export async function sendPaidOrderEmailsAfterStripeMark(
+  result: MarkOrderPaidByStripeResult | null,
+  send: (orderId: number) => Promise<void> = sendPaidOrderEmails,
+  logError: (...args: unknown[]) => void = console.error,
+): Promise<void> {
+  if (!shouldSendPaidOrderEmailsForStripeMark(result)) {
+    return
+  }
+
+  try {
+    await send(result.order.id)
+  } catch (error) {
+    logError('Book paid-order email delivery failed.', {
+      orderId: result.order.id,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
 }

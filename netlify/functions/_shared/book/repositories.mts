@@ -47,6 +47,15 @@ type MarkOrderPaidInput = {
   stripeEventType: string
 }
 
+export type BookOrderRecord = {
+  id: number
+}
+
+export type MarkOrderPaidByStripeResult = {
+  order: BookOrderRecord
+  shouldSendPaidEmails: boolean
+}
+
 export type PaidOrderEmailSummary = {
   orderId: number
   orderNumber: string
@@ -295,7 +304,37 @@ export async function createQueuedEmailEvent(input: QueuedEmailEventInput) {
     .onConflictDoNothing()
     .returning()
 
-  return event ?? null
+  if (event) {
+    return event
+  }
+
+  const [existingEvent] = await db
+    .select()
+    .from(schema.emailEvents)
+    .where(eq(schema.emailEvents.idempotencyKey, input.idempotencyKey))
+    .limit(1)
+
+  if (!existingEvent || existingEvent.status === 'sent' || existingEvent.status === 'queued') {
+    return null
+  }
+
+  const [claimedEvent] = await db
+    .update(schema.emailEvents)
+    .set({
+      to: input.to,
+      subject: input.subject,
+      template: input.template,
+      status: 'queued',
+      error: null,
+      providerMessageId: null,
+      sentAt: null,
+      relatedOrderId: input.relatedOrderId ?? null,
+      relatedLeadId: input.relatedLeadId ?? null,
+    })
+    .where(and(eq(schema.emailEvents.id, existingEvent.id), eq(schema.emailEvents.status, 'failed')))
+    .returning()
+
+  return claimedEvent ?? null
 }
 
 export async function markEmailEventSent(id: number, providerMessageId: string) {
@@ -364,15 +403,15 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
       .returning()
 
     if (!recordedEvent) {
-      return order
+      return buildMarkOrderPaidByStripeResult(order, false)
     }
 
     if (TERMINAL_OR_LOCKED_PAID_STATES.has(order.status as BookOrderStatus)) {
-      return order
+      return buildMarkOrderPaidByStripeResult(order, false)
     }
 
     if (!canMarkPaid(order.status as BookOrderStatus)) {
-      return order
+      return buildMarkOrderPaidByStripeResult(order, false)
     }
 
     const [item] = await tx
@@ -402,7 +441,7 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
         metadata: { stripeEventId: input.stripeEventId },
       })
 
-      return updatedOrder ?? order
+      return buildMarkOrderPaidByStripeResult(updatedOrder ?? order, true)
     }
 
     const [stock] = await tx
@@ -436,7 +475,7 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
         },
       })
 
-      return updatedOrder ?? order
+      return buildMarkOrderPaidByStripeResult(updatedOrder ?? order, true)
     }
 
     const now = new Date()
@@ -476,7 +515,7 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
         },
       })
 
-      return updatedOrder ?? order
+      return buildMarkOrderPaidByStripeResult(updatedOrder ?? order, true)
     }
 
     await tx.insert(schema.inventoryMovements).values({
@@ -510,6 +549,16 @@ export async function markOrderPaidByStripe(input: MarkOrderPaidInput) {
       },
     })
 
-    return updatedOrder ?? order
+    return buildMarkOrderPaidByStripeResult(updatedOrder ?? order, true)
   })
+}
+
+function buildMarkOrderPaidByStripeResult(
+  order: BookOrderRecord,
+  shouldSendPaidEmails: boolean,
+): MarkOrderPaidByStripeResult {
+  return {
+    order,
+    shouldSendPaidEmails,
+  }
 }
