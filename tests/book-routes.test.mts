@@ -49,13 +49,18 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   assert.equal(pageSource.includes('BookFaqSection'), true)
   assert.equal(pageSource.includes('ForYouIfSection'), true)
   assert.equal(pageSource.includes('AuthorBioSection'), true)
-  assert.equal(pageSource.includes('FloatingBookPagesSection'), true)
+  assert.equal(pageSource.includes('BookPagesSideScene'), true)
   assert.equal(pageSource.includes('BOOK_STORE_COPY.previewPages.map'), true)
   assert.equal(pageSource.includes('book-page-float'), true)
+  assert.equal(pageSource.includes('book-page-side-scene'), true)
   assert.equal(pageSource.includes('--page-parallax'), true)
   assert.ok(pageSource.indexOf('BOOK_STORE_COPY.longSummary.title') < pageSource.indexOf('BOOK_STORE_COPY.specs.map'))
   assert.ok(pageSource.indexOf('BOOK_STORE_COPY.specs.map') < pageSource.indexOf('function BookReviewsSection'))
-  assert.ok(pageSource.indexOf('FloatingBookPagesSection') < pageSource.indexOf('ProductStorySection'))
+  const productStorySource = pageSource.slice(
+    pageSource.indexOf('function ProductStorySection'),
+    pageSource.indexOf('function ForYouIfSection'),
+  )
+  assert.equal(productStorySource.includes('BookPagesSideScene'), true)
   assert.equal(pageSource.includes('BOOK_STORE_COPY.author.ctaLabel'), true)
   assert.equal(pageSource.includes('href={BOOK_STORE_COPY.author.ctaHref}'), true)
   const authorSectionSource = pageSource.slice(
@@ -96,6 +101,11 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   assert.equal(copySource.includes('heroLines'), true)
   assert.equal((copySource.match(/Hazlo Magnífico/g) ?? []).length >= 4, true)
   assert.match(stylesSource, /book-page-reveal-grid:hover/)
+  assert.match(stylesSource, /\.book-story-with-pages/)
+  assert.match(stylesSource, /\.book-page-side-scene/)
+  assert.match(stylesSource, /\.book-page-parallax--1\s*{[^}]*left: -/s)
+  assert.match(stylesSource, /\.book-page-parallax--5\s*{[^}]*right: -/s)
+  assert.equal(stylesSource.includes('left: 39%'), false)
   assert.match(stylesSource, /@keyframes book-page-float/)
   assert.match(stylesSource, /--page-parallax/)
 

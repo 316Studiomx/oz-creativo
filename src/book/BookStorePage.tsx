@@ -60,7 +60,6 @@ export function BookStorePage() {
         </div>
       </section>
 
-      <FloatingBookPagesSection />
       <ProductStorySection />
       <ForYouIfSection />
       <BookReviewsSection />
@@ -94,12 +93,12 @@ export function BookStorePage() {
   )
 }
 
-function FloatingBookPagesSection() {
-  const sectionRef = useRef<HTMLElement>(null)
+function BookPagesSideScene() {
+  const sceneRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const section = sectionRef.current
-    if (!section) return
+    const scene = sceneRef.current
+    if (!scene) return
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     if (reduceMotion.matches) return
@@ -107,11 +106,11 @@ function FloatingBookPagesSection() {
     let animationFrame = 0
 
     const updateParallax = () => {
-      const rect = section.getBoundingClientRect()
+      const rect = scene.getBoundingClientRect()
       const viewportHeight = window.innerHeight || 1
       const progress = (viewportHeight - rect.top) / (viewportHeight + rect.height)
       const clamped = Math.max(0, Math.min(1, progress))
-      section.style.setProperty('--page-parallax', `${Math.round((clamped - 0.5) * 86)}px`)
+      scene.style.setProperty('--page-parallax', `${Math.round((clamped - 0.5) * 86)}px`)
       animationFrame = 0
     }
 
@@ -132,30 +131,25 @@ function FloatingBookPagesSection() {
   }, [])
 
   return (
-    <section
-      ref={sectionRef}
-      className="book-page-reveal-grid container-x border-t border-white/10 py-14 md:py-20"
-      aria-label="Páginas interiores de Hazlo Magnífico"
+    <div
+      ref={sceneRef}
+      className="book-page-side-scene"
+      aria-hidden="true"
       style={{ '--page-parallax': '0px' } as CSSProperties}
     >
-      <div className="book-page-stage">
-        {BOOK_STORE_COPY.previewPages.map((page, index) => (
-          <div
-            key={page.src}
-            className={`book-page-parallax book-page-parallax--${index + 1}`}
-          >
-            <img
-              src={page.src}
-              alt={page.alt}
-              className="book-page-float"
-              loading="lazy"
-              decoding="async"
-              style={{ '--float-delay': `${index * -1.1}s` } as CSSProperties}
-            />
-          </div>
-        ))}
-      </div>
-    </section>
+      {BOOK_STORE_COPY.previewPages.map((page, index) => (
+        <div key={page.src} className={`book-page-parallax book-page-parallax--${index + 1}`}>
+          <img
+            src={page.src}
+            alt=""
+            className="book-page-float"
+            loading="lazy"
+            decoding="async"
+            style={{ '--float-delay': `${index * -1.1}s` } as CSSProperties}
+          />
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -251,8 +245,9 @@ function PromoTicker() {
 
 function ProductStorySection() {
   return (
-    <section className="container-x border-t border-white/10 py-16 md:py-20">
-      <div className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+    <section className="book-page-reveal-grid book-story-with-pages border-t border-white/10 py-16 md:py-20">
+      <BookPagesSideScene />
+      <div className="container-x relative z-10 grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
         <div className="grid gap-8">
           <p className="text-xs uppercase tracking-[0.3em] text-yellow">
             {BOOK_STORE_COPY.longSummary.eyebrow}
