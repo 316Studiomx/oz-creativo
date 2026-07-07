@@ -52,6 +52,14 @@ test('book store page exposes urgency, richer product proof, reviews, faq, and f
   assert.ok(pageSource.indexOf('BOOK_STORE_COPY.specs.map') < pageSource.indexOf('function BookReviewsSection'))
   assert.equal(pageSource.includes('BOOK_STORE_COPY.author.ctaLabel'), true)
   assert.equal(pageSource.includes('href={BOOK_STORE_COPY.author.ctaHref}'), true)
+  const authorSectionSource = pageSource.slice(
+    pageSource.indexOf('function AuthorBioSection'),
+    pageSource.indexOf('function BookFaqSection'),
+  )
+  assert.ok(
+    authorSectionSource.indexOf('BOOK_STORE_COPY.author.ctaLabel') <
+      authorSectionSource.indexOf('rounded-lg border border-yellow/25'),
+  )
   assert.equal(BOOK_STORE_COPY.author.ctaLabel, 'Saber más')
   assert.equal(BOOK_STORE_COPY.author.ctaHref, '/')
   assert.equal(BOOK_STORE_COPY.learn.length, 3)

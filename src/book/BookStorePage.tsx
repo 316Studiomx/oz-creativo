@@ -323,6 +323,12 @@ function AuthorBioSection() {
           <h2 className="mt-4 font-display text-4xl font-semibold uppercase leading-none text-paper [letter-spacing:0] md:text-6xl">
             {BOOK_STORE_COPY.author.title}
           </h2>
+          <a
+            href={BOOK_STORE_COPY.author.ctaHref}
+            className="mt-12 inline-flex w-full max-w-md items-center justify-center rounded-full border border-yellow/60 px-6 py-4 text-sm font-bold uppercase text-yellow transition hover:bg-yellow hover:text-ink sm:w-auto sm:min-w-52"
+          >
+            {BOOK_STORE_COPY.author.ctaLabel}
+          </a>
         </div>
 
         <div className="rounded-lg border border-yellow/25 bg-yellow/10 p-6">
@@ -334,12 +340,6 @@ function AuthorBioSection() {
               <p key={paragraph}>{paragraph}</p>
             ))}
           </div>
-          <a
-            href={BOOK_STORE_COPY.author.ctaHref}
-            className="mt-7 inline-flex w-full items-center justify-center rounded bg-yellow px-5 py-3 text-sm font-bold uppercase text-ink transition hover:bg-yellow-warm sm:w-auto"
-          >
-            {BOOK_STORE_COPY.author.ctaLabel}
-          </a>
         </div>
       </div>
     </section>
