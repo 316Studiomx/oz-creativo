@@ -45,7 +45,7 @@ Este proyecto usa Netlify Database con Drizzle y `pg`.
 
 - `@netlify/database` obtiene la conexion con `getConnectionString()` en `db/index.ts`.
 - Las migraciones viven en `netlify/database/migrations/<timestamp_slug>/migration.sql`.
-- La migracion actual de la tienda esta en `netlify/database/migrations/20260706000000_create_hazlo_magnifico_store/migration.sql`.
+- La migracion actual de la tienda esta en `netlify/database/migrations/20260706000000_create-hazlo-magnifico-store/migration.sql`.
 - No se debe crear ni commitear `DATABASE_URL`; Netlify provee la conexion en su entorno.
 - Despues de tener la base disponible, corre `npm run db:seed` para crear el producto, inventario inicial y reglas de descuento.
 
