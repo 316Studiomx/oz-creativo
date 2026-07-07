@@ -183,3 +183,14 @@ test('admin orders renders shipment URLs only after safe http validation', () =>
   assert.match(ordersSource, /URL\(value\)/)
   assert.match(ordersSource, /url\.protocol === 'http:' \|\| url\.protocol === 'https:'/)
 })
+
+test('admin shipping path supplies complete Skydropx address fields from real order data', () => {
+  const shippingSource = readFileSync('netlify/functions/book-admin-shipping.mts', 'utf8')
+  const envExample = readFileSync('.env.example', 'utf8')
+
+  assert.equal(shippingSource.includes('company: detail.order.customerName'), true)
+  assert.equal(shippingSource.includes('email: detail.order.customerEmail'), true)
+  assert.equal(shippingSource.includes('reference: detail.address.references'), true)
+  assert.equal(shippingSource.includes("reference: readOptionalEnv('SKYDROPX_ORIGIN_REFERENCE')"), true)
+  assert.match(envExample, /^SKYDROPX_ORIGIN_REFERENCE=$/m)
+})

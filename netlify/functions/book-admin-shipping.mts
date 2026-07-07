@@ -200,6 +200,7 @@ function buildShipmentInput(detail: NonNullable<Awaited<ReturnType<typeof getAdm
     origin: readOriginAddress(),
     destination: {
       name: detail.address.name || detail.order.customerName,
+      company: detail.order.customerName,
       phone: detail.address.phone || detail.order.customerPhone,
       email: detail.order.customerEmail,
       street: detail.address.street,
@@ -245,6 +246,7 @@ function readOriginAddress(): SkydropxAddress {
     company: readOptionalEnv('SKYDROPX_ORIGIN_COMPANY'),
     phone: requireEnv('SKYDROPX_ORIGIN_PHONE'),
     email: readOptionalEnv('SKYDROPX_ORIGIN_EMAIL'),
+    reference: readOptionalEnv('SKYDROPX_ORIGIN_REFERENCE'),
     street: requireEnv('SKYDROPX_ORIGIN_STREET'),
     exteriorNumber: requireEnv('SKYDROPX_ORIGIN_EXTERIOR_NUMBER'),
     interiorNumber: readOptionalEnv('SKYDROPX_ORIGIN_INTERIOR_NUMBER'),
