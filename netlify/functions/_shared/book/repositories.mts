@@ -47,6 +47,38 @@ type MarkOrderPaidInput = {
   stripeEventType: string
 }
 
+export type PaidOrderEmailSummary = {
+  orderId: number
+  orderNumber: string
+  customerName: string
+  customerEmail: string
+  customerPhone: string
+  quantity: number
+  totalCents: number
+  address: string
+}
+
+type ShippingAddressForDisplay = {
+  street: string
+  exteriorNumber: string
+  interiorNumber: string | null
+  neighborhood: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+  references?: string | null
+}
+
+type QueuedEmailEventInput = {
+  to: string
+  subject: string
+  template: string
+  relatedOrderId?: number
+  relatedLeadId?: number
+  idempotencyKey: string
+}
+
 const TERMINAL_OR_LOCKED_PAID_STATES = new Set<BookOrderStatus>([
   'paid',
   'label_pending',
@@ -80,6 +112,20 @@ export function nextOrderFulfillmentStateAfterPayment(): {
 
 export function createShipmentRowAfterPayment(): false {
   return false
+}
+
+export function formatShippingAddressForEmail(address: ShippingAddressForDisplay): string {
+  return [
+    `${address.street} #${address.exteriorNumber}${address.interiorNumber ? ` Int. ${address.interiorNumber}` : ''}`,
+    address.neighborhood,
+    address.city,
+    address.state,
+    `CP ${address.postalCode}`,
+    address.country,
+    address.references ? `Referencias: ${address.references}` : '',
+  ]
+    .filter(Boolean)
+    .join(', ')
 }
 
 async function getDbModule() {
@@ -191,6 +237,89 @@ export async function attachStripeSession(orderId: number, sessionId: string) {
 export async function listRecentOrders(limit = 50) {
   const { db, schema } = await getDbModule()
   return db.select().from(schema.orders).orderBy(desc(schema.orders.createdAt)).limit(limit)
+}
+
+export async function loadPaidOrderEmailSummary(
+  orderId: number,
+): Promise<PaidOrderEmailSummary | null> {
+  const { db, schema } = await getDbModule()
+  const [order] = await db
+    .select()
+    .from(schema.orders)
+    .where(eq(schema.orders.id, orderId))
+    .limit(1)
+
+  if (!order) {
+    return null
+  }
+
+  const [item] = await db
+    .select()
+    .from(schema.orderItems)
+    .where(eq(schema.orderItems.orderId, order.id))
+    .limit(1)
+  const [shippingAddress] = await db
+    .select()
+    .from(schema.shippingAddresses)
+    .where(eq(schema.shippingAddresses.orderId, order.id))
+    .limit(1)
+
+  if (!item || !shippingAddress) {
+    return null
+  }
+
+  return {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    customerName: order.customerName,
+    customerEmail: order.customerEmail,
+    customerPhone: order.customerPhone,
+    quantity: item.quantity,
+    totalCents: order.totalCents,
+    address: formatShippingAddressForEmail(shippingAddress),
+  }
+}
+
+export async function createQueuedEmailEvent(input: QueuedEmailEventInput) {
+  const { db, schema } = await getDbModule()
+  const [event] = await db
+    .insert(schema.emailEvents)
+    .values({
+      to: input.to,
+      subject: input.subject,
+      template: input.template,
+      relatedOrderId: input.relatedOrderId ?? null,
+      relatedLeadId: input.relatedLeadId ?? null,
+      idempotencyKey: input.idempotencyKey,
+    })
+    .onConflictDoNothing()
+    .returning()
+
+  return event ?? null
+}
+
+export async function markEmailEventSent(id: number, providerMessageId: string) {
+  const { db, schema } = await getDbModule()
+  await db
+    .update(schema.emailEvents)
+    .set({
+      status: 'sent',
+      providerMessageId,
+      error: null,
+      sentAt: new Date(),
+    })
+    .where(eq(schema.emailEvents.id, id))
+}
+
+export async function markEmailEventFailed(id: number, error: string) {
+  const { db, schema } = await getDbModule()
+  await db
+    .update(schema.emailEvents)
+    .set({
+      status: 'failed',
+      error,
+    })
+    .where(eq(schema.emailEvents.id, id))
 }
 
 export async function hasProcessedStripeEvent(stripeEventId: string): Promise<boolean> {
