@@ -238,8 +238,8 @@ export function BookCheckoutForm() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <label className="sm:col-span-1">
+      <div className="mt-5 grid gap-4 sm:grid-cols-[96px_minmax(0,1fr)]">
+        <label className="max-w-[96px]">
           <span className="text-sm font-medium text-paper">Cantidad</span>
           <select
             value={form.quantity}
@@ -259,7 +259,7 @@ export function BookCheckoutForm() {
             <span className="text-sm font-medium text-paper">
               Cupón <span className="text-muted">opcional</span>
             </span>
-            <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row">
+            <div className="coupon-control-row mt-2 grid min-w-0 gap-2">
               <input
                 type="text"
                 value={form.coupon}
@@ -271,7 +271,7 @@ export function BookCheckoutForm() {
                 type="button"
                 onClick={handleValidateCoupon}
                 disabled={couponStatus === 'validating'}
-                className="inline-flex shrink-0 items-center justify-center rounded-full border border-yellow/45 px-4 py-3 text-sm font-semibold text-yellow transition-colors hover:bg-yellow hover:text-ink disabled:cursor-wait disabled:opacity-70"
+                className="inline-flex w-full items-center justify-center rounded-full border border-yellow/45 px-4 py-3 text-sm font-semibold text-yellow transition-colors hover:bg-yellow hover:text-ink disabled:cursor-wait disabled:opacity-70 sm:w-auto"
               >
                 {couponStatus === 'validating' ? 'Validando...' : 'Aplicar cupón'}
               </button>
