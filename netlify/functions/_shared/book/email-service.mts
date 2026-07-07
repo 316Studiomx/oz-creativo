@@ -3,13 +3,16 @@ import { Resend } from 'resend'
 import {
   renderInternalPaidOrderEmail,
   renderPurchaseConfirmationEmail,
+  renderShipmentEmail,
 } from './email-templates.mts'
 import {
   createQueuedEmailEvent,
   loadPaidOrderEmailSummary,
+  loadShipmentEmailSummary,
   markEmailEventFailed,
   markEmailEventSent,
   type PaidOrderEmailSummary,
+  type ShipmentEmailSummary,
 } from './repositories.mts'
 
 const INTERNAL_ORDER_EMAIL = 'oz@expocuspide.com'
@@ -57,6 +60,14 @@ type QueuedEmailEventInput = {
 
 export type SendPaidOrderEmailsDeps = {
   loadPaidOrderEmailSummary: (orderId: number) => Promise<PaidOrderEmailSummary | null>
+  createQueuedEmailEvent: (input: QueuedEmailEventInput) => Promise<EmailEventRecord | null>
+  markEmailEventSent: (id: number, providerMessageId: string) => Promise<void>
+  markEmailEventFailed: (id: number, error: string) => Promise<void>
+  sendTransactionalEmail: (input: SendEmailInput) => Promise<string>
+}
+
+export type SendShipmentTrackingEmailDeps = {
+  loadShipmentEmailSummary: (orderId: number) => Promise<ShipmentEmailSummary | null>
   createQueuedEmailEvent: (input: QueuedEmailEventInput) => Promise<EmailEventRecord | null>
   markEmailEventSent: (id: number, providerMessageId: string) => Promise<void>
   markEmailEventFailed: (id: number, error: string) => Promise<void>
@@ -157,8 +168,53 @@ export async function sendPaidOrderEmails(
   }
 }
 
+export async function sendShipmentTrackingEmail(
+  orderId: number,
+  deps: SendShipmentTrackingEmailDeps = defaultShipmentTrackingEmailDeps,
+): Promise<void> {
+  const summary = await deps.loadShipmentEmailSummary(orderId)
+  if (!summary) {
+    throw new Error(`No se pudo cargar el resumen de envio del pedido ${orderId}.`)
+  }
+
+  const email = renderShipmentEmail(summary)
+  const event = await deps.createQueuedEmailEvent({
+    to: summary.customerEmail,
+    subject: email.subject,
+    template: 'shipment-tracking',
+    relatedOrderId: summary.orderId,
+    idempotencyKey: `shipment-tracking:${summary.orderId}:${summary.trackingNumber}`,
+  })
+
+  if (!event) {
+    return
+  }
+
+  try {
+    const providerMessageId = await deps.sendTransactionalEmail({
+      to: summary.customerEmail,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+    })
+    await deps.markEmailEventSent(event.id, providerMessageId)
+  } catch (error) {
+    const failure = normalizeError(error, 'No se pudo enviar el correo de rastreo.')
+    await deps.markEmailEventFailed(event.id, failure.message)
+    throw failure
+  }
+}
+
 const defaultPaidOrderEmailDeps: SendPaidOrderEmailsDeps = {
   loadPaidOrderEmailSummary,
+  createQueuedEmailEvent,
+  markEmailEventSent,
+  markEmailEventFailed,
+  sendTransactionalEmail,
+}
+
+const defaultShipmentTrackingEmailDeps: SendShipmentTrackingEmailDeps = {
+  loadShipmentEmailSummary,
   createQueuedEmailEvent,
   markEmailEventSent,
   markEmailEventFailed,

@@ -99,6 +99,13 @@ export type PaidOrderEmailSummary = {
   address: string
 }
 
+export type ShipmentEmailSummary = PaidOrderEmailSummary & {
+  carrier: string
+  service: string
+  trackingNumber: string
+  trackingUrl: string
+}
+
 export type PublicOrderStatus = {
   orderNumber: string
   quantity?: number
@@ -171,6 +178,22 @@ type QueuedEmailEventInput = {
   idempotencyKey: string
 }
 
+export type AdminShipmentUpsertInput = {
+  orderId: number
+  quotationId?: string | null
+  rateId?: string | null
+  shipmentId?: string | null
+  carrier?: string | null
+  service?: string | null
+  trackingNumber?: string | null
+  trackingUrl?: string | null
+  labelUrl?: string | null
+  realShippingCostCents?: number | null
+  status: 'label_pending' | 'label_created' | 'label_error'
+  error?: string | null
+  rawResponseJson?: unknown
+}
+
 const TERMINAL_OR_LOCKED_PAID_STATES = new Set<BookOrderStatus>([
   'paid',
   'label_pending',
@@ -190,6 +213,16 @@ export function canMarkPaid(status: BookOrderStatus): boolean {
 
 export function nextShipmentStatusAfterLabel(): 'label_created' {
   return 'label_created'
+}
+
+export function nextShipmentStatusAfterLabelState(): {
+  status: 'label_created'
+  shippingStatus: 'label_created'
+} {
+  return {
+    status: 'label_created',
+    shippingStatus: 'label_created',
+  }
 }
 
 export function nextOrderFulfillmentStateAfterPayment(): {
@@ -524,6 +557,9 @@ export async function getAdminOrderDetail(id: number) {
     db
       .select({
         provider: schema.shipments.provider,
+        quotationId: schema.shipments.quotationId,
+        rateId: schema.shipments.rateId,
+        shipmentId: schema.shipments.shipmentId,
         carrier: schema.shipments.carrier,
         service: schema.shipments.service,
         trackingNumber: schema.shipments.trackingNumber,
@@ -993,6 +1029,253 @@ export async function loadPaidOrderEmailSummary(
     totalCents: order.totalCents,
     address: formatShippingAddressForEmail(shippingAddress),
   }
+}
+
+export async function loadShipmentEmailSummary(
+  orderId: number,
+): Promise<ShipmentEmailSummary | null> {
+  const paidSummary = await loadPaidOrderEmailSummary(orderId)
+  if (!paidSummary) {
+    return null
+  }
+
+  const { db, schema } = await getDbModule()
+  const [shipment] = await db
+    .select({
+      carrier: schema.shipments.carrier,
+      service: schema.shipments.service,
+      trackingNumber: schema.shipments.trackingNumber,
+      trackingUrl: schema.shipments.trackingUrl,
+    })
+    .from(schema.shipments)
+    .where(eq(schema.shipments.orderId, orderId))
+    .limit(1)
+
+  if (!shipment?.trackingNumber) {
+    return null
+  }
+
+  return {
+    ...paidSummary,
+    carrier: shipment.carrier || 'Paqueteria',
+    service: shipment.service || 'Servicio estandar',
+    trackingNumber: shipment.trackingNumber,
+    trackingUrl: shipment.trackingUrl || '',
+  }
+}
+
+export async function upsertAdminShipment(input: AdminShipmentUpsertInput) {
+  const { db, schema } = await getDbModule()
+  const now = new Date()
+  const [shipment] = await db
+    .insert(schema.shipments)
+    .values({
+      orderId: input.orderId,
+      provider: 'skydropx',
+      quotationId: input.quotationId ?? null,
+      rateId: input.rateId ?? null,
+      shipmentId: input.shipmentId ?? null,
+      carrier: input.carrier ?? null,
+      service: input.service ?? null,
+      trackingNumber: input.trackingNumber ?? null,
+      trackingUrl: input.trackingUrl ?? null,
+      labelUrl: input.labelUrl ?? null,
+      realShippingCostCents: input.realShippingCostCents ?? null,
+      status: input.status,
+      error: input.error ?? null,
+      rawResponseJson: input.rawResponseJson ?? null,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: schema.shipments.orderId,
+      set: {
+        quotationId: input.quotationId ?? null,
+        rateId: input.rateId ?? null,
+        shipmentId: input.shipmentId ?? null,
+        carrier: input.carrier ?? null,
+        service: input.service ?? null,
+        trackingNumber: input.trackingNumber ?? null,
+        trackingUrl: input.trackingUrl ?? null,
+        labelUrl: input.labelUrl ?? null,
+        realShippingCostCents: input.realShippingCostCents ?? null,
+        status: input.status,
+        error: input.error ?? null,
+        rawResponseJson: input.rawResponseJson ?? null,
+        updatedAt: now,
+      },
+    })
+    .returning()
+
+  return shipment ?? null
+}
+
+export async function markOrderShippingQuoted(input: {
+  orderId: number
+  quotationId: string
+  rawResponseJson?: unknown
+}) {
+  const { db, schema } = await getDbModule()
+  return db.transaction(async (tx) => {
+    const now = new Date()
+    const [shipment] = await tx
+      .insert(schema.shipments)
+      .values({
+        orderId: input.orderId,
+        provider: 'skydropx',
+        quotationId: input.quotationId,
+        status: 'label_pending',
+        rawResponseJson: input.rawResponseJson ?? null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: schema.shipments.orderId,
+        set: {
+          quotationId: input.quotationId,
+          status: 'label_pending',
+          error: null,
+          rawResponseJson: input.rawResponseJson ?? null,
+          updatedAt: now,
+        },
+      })
+      .returning()
+
+    await tx
+      .update(schema.orders)
+      .set({
+        status: 'label_pending',
+        shippingStatus: 'label_pending',
+        updatedAt: now,
+      })
+      .where(eq(schema.orders.id, input.orderId))
+
+    await tx.insert(schema.orderEvents).values({
+      orderId: input.orderId,
+      type: 'shipping_quoted',
+      message: 'Cotizacion de envio generada en Skydropx.',
+      metadata: { quotationId: input.quotationId },
+      createdAt: now,
+    })
+
+    return shipment ?? null
+  })
+}
+
+export async function markOrderShipmentCreated(input: AdminShipmentUpsertInput) {
+  const { db, schema } = await getDbModule()
+  return db.transaction(async (tx) => {
+    const now = new Date()
+    const [shipment] = await tx
+      .insert(schema.shipments)
+      .values({
+        orderId: input.orderId,
+        provider: 'skydropx',
+        quotationId: input.quotationId ?? null,
+        rateId: input.rateId ?? null,
+        shipmentId: input.shipmentId ?? null,
+        carrier: input.carrier ?? null,
+        service: input.service ?? null,
+        trackingNumber: input.trackingNumber ?? null,
+        trackingUrl: input.trackingUrl ?? null,
+        labelUrl: input.labelUrl ?? null,
+        realShippingCostCents: input.realShippingCostCents ?? null,
+        status: 'label_created',
+        error: null,
+        rawResponseJson: input.rawResponseJson ?? null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: schema.shipments.orderId,
+        set: {
+          quotationId: input.quotationId ?? null,
+          rateId: input.rateId ?? null,
+          shipmentId: input.shipmentId ?? null,
+          carrier: input.carrier ?? null,
+          service: input.service ?? null,
+          trackingNumber: input.trackingNumber ?? null,
+          trackingUrl: input.trackingUrl ?? null,
+          labelUrl: input.labelUrl ?? null,
+          realShippingCostCents: input.realShippingCostCents ?? null,
+          status: 'label_created',
+          error: null,
+          rawResponseJson: input.rawResponseJson ?? null,
+          updatedAt: now,
+        },
+      })
+      .returning()
+
+    await tx
+      .update(schema.orders)
+      .set({
+        ...nextShipmentStatusAfterLabelState(),
+        updatedAt: now,
+      })
+      .where(eq(schema.orders.id, input.orderId))
+
+    await tx.insert(schema.orderEvents).values({
+      orderId: input.orderId,
+      type: 'shipment_created',
+      message: 'Guia de envio creada en Skydropx.',
+      metadata: {
+        quotationId: input.quotationId,
+        rateId: input.rateId,
+        shipmentId: input.shipmentId,
+        trackingNumber: input.trackingNumber,
+        carrier: input.carrier,
+        service: input.service,
+      },
+      createdAt: now,
+    })
+
+    return shipment ?? null
+  })
+}
+
+export async function markOrderShipmentError(orderId: number, error: string) {
+  const { db, schema } = await getDbModule()
+  return db.transaction(async (tx) => {
+    const now = new Date()
+    const [shipment] = await tx
+      .insert(schema.shipments)
+      .values({
+        orderId,
+        provider: 'skydropx',
+        status: 'label_error',
+        error,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: schema.shipments.orderId,
+        set: {
+          status: 'label_error',
+          error,
+          updatedAt: now,
+        },
+      })
+      .returning()
+
+    await tx
+      .update(schema.orders)
+      .set({
+        status: 'label_error',
+        shippingStatus: 'label_error',
+        updatedAt: now,
+      })
+      .where(eq(schema.orders.id, orderId))
+
+    await tx.insert(schema.orderEvents).values({
+      orderId,
+      type: 'label_error',
+      message: 'No se pudo crear la guia en Skydropx.',
+      metadata: { error },
+      createdAt: now,
+    })
+
+    return shipment ?? null
+  })
 }
 
 export async function createQueuedEmailEvent(input: QueuedEmailEventInput) {
