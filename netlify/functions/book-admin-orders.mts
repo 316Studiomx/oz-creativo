@@ -17,6 +17,9 @@ export default async (req: Request) => {
   }
 
   const route = readAdminOrderRoute(new URL(req.url).pathname)
+  if (route.kind === 'invalid') {
+    return jsonResponse({ ok: false, message: 'Pedido invalido.' }, 400)
+  }
 
   try {
     if (route.kind === 'dashboard') {
@@ -44,10 +47,11 @@ export const config: Config = {
   path: ['/api/book/admin/dashboard', '/api/book/admin/orders', '/api/book/admin/orders/:id'],
 }
 
-function readAdminOrderRoute(pathname: string):
+export function readAdminOrderRoute(pathname: string):
   | { kind: 'dashboard' }
   | { kind: 'list' }
-  | { kind: 'detail'; id: number } {
+  | { kind: 'detail'; id: number }
+  | { kind: 'invalid' } {
   const parts = pathname.split('/').filter(Boolean)
   const last = parts[parts.length - 1] || ''
 
@@ -64,5 +68,5 @@ function readAdminOrderRoute(pathname: string):
     return { kind: 'detail', id }
   }
 
-  return { kind: 'list' }
+  return { kind: 'invalid' }
 }

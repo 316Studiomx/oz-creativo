@@ -662,6 +662,31 @@ export async function listCoupons() {
     .orderBy(desc(schema.coupons.createdAt))
 }
 
+export async function getCouponById(id: number) {
+  const { db, schema } = await getDbModule()
+  const [coupon] = await db
+    .select({
+      id: schema.coupons.id,
+      code: schema.coupons.code,
+      type: schema.coupons.type,
+      value: schema.coupons.value,
+      active: schema.coupons.active,
+      usageLimit: schema.coupons.usageLimit,
+      usedCount: schema.coupons.usedCount,
+      minSubtotalCents: schema.coupons.minSubtotalCents,
+      minQuantity: schema.coupons.minQuantity,
+      maxUsesPerEmail: schema.coupons.maxUsesPerEmail,
+      stackable: schema.coupons.stackable,
+      createdAt: schema.coupons.createdAt,
+      updatedAt: schema.coupons.updatedAt,
+    })
+    .from(schema.coupons)
+    .where(eq(schema.coupons.id, id))
+    .limit(1)
+
+  return coupon ?? null
+}
+
 export async function createCoupon(input: AdminCouponMutationInput) {
   const { db, schema } = await getDbModule()
   const now = new Date()

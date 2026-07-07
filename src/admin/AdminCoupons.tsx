@@ -131,7 +131,7 @@ export function AdminCoupons() {
       id: String(coupon.id),
       code: coupon.code,
       type: coupon.type,
-      value: String(coupon.value),
+      value: coupon.type === 'fixed' ? String(coupon.value / 100) : String(coupon.value),
       active: coupon.active,
       minQuantity: nullableNumberToString(coupon.minQuantity),
       minSubtotalPesos: coupon.minSubtotalCents ? String(coupon.minSubtotalCents / 100) : '',
@@ -227,16 +227,19 @@ export function AdminCoupons() {
             </label>
 
             <label className="text-sm text-muted">
-              Valor
+              Valor (% o MXN)
               <input
                 className="mt-2 w-full rounded border border-paper/15 bg-ink px-3 py-3 text-paper outline-none focus:border-yellow"
                 type="number"
-                min="1"
-                step="1"
+                min={form.type === 'fixed' ? '0.01' : '1'}
+                step={form.type === 'fixed' ? '0.01' : '1'}
                 value={form.value}
                 onChange={(event) => setForm({ ...form, value: event.target.value })}
                 required
               />
+              <span className="mt-1 block text-xs text-muted">
+                Percent usa puntos porcentuales; fixed usa pesos MXN y se guarda en centavos.
+              </span>
             </label>
           </div>
 
@@ -271,7 +274,7 @@ export function AdminCoupons() {
               <input
                 className="mt-2 w-full rounded border border-paper/15 bg-ink px-3 py-3 text-paper outline-none focus:border-yellow"
                 type="number"
-                min="0"
+                min="1"
                 step="1"
                 value={form.maxUsesPerEmail}
                 onChange={(event) => setForm({ ...form, maxUsesPerEmail: event.target.value })}
@@ -282,7 +285,7 @@ export function AdminCoupons() {
               <input
                 className="mt-2 w-full rounded border border-paper/15 bg-ink px-3 py-3 text-paper outline-none focus:border-yellow"
                 type="number"
-                min="0"
+                min="1"
                 step="1"
                 value={form.usageLimit}
                 onChange={(event) => setForm({ ...form, usageLimit: event.target.value })}
