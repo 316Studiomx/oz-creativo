@@ -1,16 +1,22 @@
 #!/usr/bin/env node
-import { readFile, rm, readdir } from 'node:fs/promises'
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
+import os from 'node:os'
 
 const migrationsDir = path.resolve('netlify/database/migrations')
 const journalPath = path.resolve('netlify/database/migrations/meta/_journal.json')
 const metaDir = path.resolve('netlify/database/migrations/meta')
+const tempOutDir = await mkdtemp(path.join(os.tmpdir(), 'hazlo-magnifico-drizzle-'))
 
-const result = spawnSync('npx', ['drizzle-kit', 'generate'], { stdio: 'inherit', shell: process.platform === 'win32' })
+const result = spawnSync('npx', ['drizzle-kit', 'generate', '--dialect', 'postgresql', '--schema', './db/schema.ts', '--out', tempOutDir], {
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+})
 
 if (result.status !== 0) {
+  await rm(tempOutDir, { recursive: true, force: true })
   process.exit(result.status || 1)
 }
 
@@ -46,3 +52,5 @@ if (!hasRealMigrations) {
   await rm(metaDir, { recursive: true, force: true })
   await rm(migrationsDir, { recursive: true, force: true })
 }
+
+await rm(tempOutDir, { recursive: true, force: true })
