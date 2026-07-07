@@ -1,6 +1,12 @@
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 
+import { AdminCoupons } from './AdminCoupons'
+import { AdminDashboard } from './AdminDashboard'
+import { AdminEmails } from './AdminEmails'
+import { AdminInternationalQuotes } from './AdminInternationalQuotes'
+import { AdminInventory } from './AdminInventory'
 import { AdminLogin } from './AdminLogin'
+import { AdminOrders } from './AdminOrders'
 
 type SessionState = {
   ready: boolean
@@ -8,9 +14,22 @@ type SessionState = {
   email: string | null
 }
 
+const tabs = ['dashboard', 'orders', 'inventory', 'coupons', 'international', 'emails'] as const
+
+type AdminTab = (typeof tabs)[number]
+
 type MeResponse = {
   ok?: boolean
   email?: string
+}
+
+const tabLabels: Record<AdminTab, string> = {
+  dashboard: 'Dashboard',
+  orders: 'Pedidos',
+  inventory: 'Inventario',
+  coupons: 'Cupones',
+  international: 'Internacional',
+  emails: 'Emails',
 }
 
 export function AdminApp() {
@@ -19,6 +38,7 @@ export function AdminApp() {
     loggedIn: false,
     email: null,
   })
+  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard')
   const [loggingOut, setLoggingOut] = useState(false)
 
   useEffect(() => {
@@ -77,17 +97,17 @@ export function AdminApp() {
   }
 
   return (
-    <main className="min-h-screen bg-ink px-5 py-8 text-paper md:px-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-        <header className="flex flex-col gap-4 border-b border-paper/10 pb-6 md:flex-row md:items-center md:justify-between">
+    <main className="min-h-screen bg-ink px-4 py-5 text-paper md:px-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
+        <header className="flex flex-col gap-4 border-b border-paper/10 pb-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase text-yellow [letter-spacing:0]">
               {session.email || 'Admin'}
             </p>
-            <h1 className="mt-2 font-display text-4xl font-bold uppercase leading-none md:text-5xl [letter-spacing:0]">
+            <h1 className="mt-1 font-display text-2xl font-bold uppercase leading-none md:text-3xl [letter-spacing:0]">
               Admin Hazlo Magnífico
             </h1>
-            <p className="mt-3 text-muted">Pedidos, inventario, cupones y envíos.</p>
+            <p className="mt-2 text-sm text-muted">Pedidos, inventario, cupones, envíos y operación.</p>
           </div>
 
           <button
@@ -100,15 +120,114 @@ export function AdminApp() {
           </button>
         </header>
 
-        <section className="grid gap-3 md:grid-cols-4">
-          {['Pedidos', 'Inventario', 'Cupones', 'Envíos'].map((label) => (
-            <div key={label} className="rounded border border-paper/10 bg-paper/[0.04] p-4">
-              <p className="text-sm font-semibold text-paper">{label}</p>
-            </div>
-          ))}
+        <nav className="overflow-x-auto border-b border-paper/10 pb-2">
+          <div className="flex min-w-max gap-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                className={`rounded border px-3 py-2 text-sm font-semibold transition ${
+                  activeTab === tab
+                    ? 'border-yellow bg-yellow text-ink'
+                    : 'border-paper/10 bg-paper/[0.04] text-muted hover:border-yellow hover:text-paper'
+                }`}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+              >
+                {tabLabels[tab]}
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        <section>
+          {activeTab === 'dashboard' ? <AdminDashboard /> : null}
+          {activeTab === 'orders' ? <AdminOrders /> : null}
+          {activeTab === 'inventory' ? <AdminInventory /> : null}
+          {activeTab === 'coupons' ? <AdminCoupons /> : null}
+          {activeTab === 'international' ? <AdminInternationalQuotes /> : null}
+          {activeTab === 'emails' ? <AdminEmails /> : null}
         </section>
       </div>
     </main>
+  )
+}
+
+export function AdminPanelMessage({
+  title,
+  tone = 'muted',
+}: {
+  title: string
+  tone?: 'muted' | 'error'
+}) {
+  return (
+    <div
+      className={`rounded border px-4 py-3 text-sm ${
+        tone === 'error'
+          ? 'border-red-400/30 bg-red-500/10 text-red-100'
+          : 'border-paper/10 bg-paper/[0.04] text-muted'
+      }`}
+    >
+      {title}
+    </div>
+  )
+}
+
+export function AdminSection({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <section className="rounded border border-paper/10 bg-paper/[0.03]">
+      <div className="border-b border-paper/10 px-4 py-3">
+        <h2 className="text-sm font-bold uppercase text-paper [letter-spacing:0]">{title}</h2>
+      </div>
+      <div className="p-4">{children}</div>
+    </section>
+  )
+}
+
+export async function readAdminResponse<T>(response: Response): Promise<T> {
+  const text = await response.text()
+  if (!text.trim()) return {} as T
+
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    return {} as T
+  }
+}
+
+export function formatMoney(cents: number | null | undefined, currency = 'MXN'): string {
+  const value = Number(cents ?? 0)
+  try {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency,
+    }).format(value / 100)
+  } catch {
+    return `$${(value / 100).toLocaleString('es-MX')} ${currency}`
+  }
+}
+
+export function formatDate(value: string | null | undefined): string {
+  if (!value) return 'Sin fecha'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Sin fecha'
+
+  return new Intl.DateTimeFormat('es-MX', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date)
+}
+
+export function StatusPill({ label }: { label: string }) {
+  return (
+    <span className="inline-flex min-h-7 items-center rounded border border-paper/10 bg-ink px-2 py-1 text-xs font-semibold text-paper">
+      {label}
+    </span>
   )
 }
 

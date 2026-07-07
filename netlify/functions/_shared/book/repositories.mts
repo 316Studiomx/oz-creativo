@@ -120,6 +120,36 @@ export type AdminSession = {
   expiresAt: Date
 }
 
+export type AdminInventoryAdjustmentInput = {
+  inventoryId: number
+  deltaAvailable: number
+  reason: string
+  createdBy: string
+}
+
+export type AdminCouponMutationInput = {
+  code: string
+  type: 'percent' | 'fixed'
+  value: number
+  active: boolean
+  minQuantity: number | null
+  minSubtotalCents: number | null
+  maxUsesPerEmail: number | null
+  usageLimit: number | null
+  stackable: boolean
+}
+
+export type AdminCouponUpdateInput = Partial<AdminCouponMutationInput> & {
+  id: number
+}
+
+export type InternationalLeadStatus =
+  | 'nuevo'
+  | 'cotizado'
+  | 'esperando_respuesta'
+  | 'convertido'
+  | 'cerrado'
+
 type ShippingAddressForDisplay = {
   street: string
   exteriorNumber: string
@@ -382,6 +412,388 @@ export async function attachStripeSession(orderId: number, sessionId: string) {
 export async function listRecentOrders(limit = 50) {
   const { db, schema } = await getDbModule()
   return db.select().from(schema.orders).orderBy(desc(schema.orders.createdAt)).limit(limit)
+}
+
+export async function getAdminDashboardMetrics() {
+  const [orders, leads, emails] = await Promise.all([
+    listAdminOrders(500),
+    listInternationalQuoteLeads(),
+    listEmailEvents(),
+  ])
+
+  const paidOrders = orders.filter((order) => order.paymentStatus === 'paid')
+
+  return {
+    totalOrders: orders.length,
+    paidOrders: paidOrders.length,
+    unpaidOrders: orders.filter((order) => order.paymentStatus !== 'paid').length,
+    pendingLabels: orders.filter((order) => order.shippingStatus === 'label_pending').length,
+    shippedOrders: orders.filter((order) => order.shippingStatus === 'shipped').length,
+    internationalLeads: leads.length,
+    failedEmails: emails.filter((event) => event.status === 'failed').length,
+    revenueCents: paidOrders.reduce((total, order) => total + order.totalCents, 0),
+  }
+}
+
+export async function listAdminOrders(limit = 100) {
+  const { db, schema } = await getDbModule()
+  return db
+    .select({
+      id: schema.orders.id,
+      orderNumber: schema.orders.orderNumber,
+      createdAt: schema.orders.createdAt,
+      customerName: schema.orders.customerName,
+      customerEmail: schema.orders.customerEmail,
+      customerPhone: schema.orders.customerPhone,
+      quantity: schema.orderItems.quantity,
+      totalCents: schema.orders.totalCents,
+      currency: schema.orders.currency,
+      paymentStatus: schema.orders.paymentStatus,
+      shippingStatus: schema.orders.shippingStatus,
+      couponCode: schema.orders.couponCode,
+      couponDiscountCents: schema.orders.couponDiscountCents,
+    })
+    .from(schema.orders)
+    .leftJoin(schema.orderItems, eq(schema.orderItems.orderId, schema.orders.id))
+    .orderBy(desc(schema.orders.createdAt))
+    .limit(limit)
+}
+
+export async function getAdminOrderDetail(id: number) {
+  const { db, schema } = await getDbModule()
+  const [order] = await db
+    .select({
+      id: schema.orders.id,
+      orderNumber: schema.orders.orderNumber,
+      status: schema.orders.status,
+      paymentStatus: schema.orders.paymentStatus,
+      shippingStatus: schema.orders.shippingStatus,
+      customerName: schema.orders.customerName,
+      customerEmail: schema.orders.customerEmail,
+      customerPhone: schema.orders.customerPhone,
+      subtotalCents: schema.orders.subtotalCents,
+      volumeDiscountPercent: schema.orders.volumeDiscountPercent,
+      volumeDiscountCents: schema.orders.volumeDiscountCents,
+      couponCode: schema.orders.couponCode,
+      couponDiscountCents: schema.orders.couponDiscountCents,
+      totalDiscountCents: schema.orders.totalDiscountCents,
+      shippingChargedCents: schema.orders.shippingChargedCents,
+      totalCents: schema.orders.totalCents,
+      currency: schema.orders.currency,
+      paidAt: schema.orders.paidAt,
+      notes: schema.orders.notes,
+      createdAt: schema.orders.createdAt,
+      updatedAt: schema.orders.updatedAt,
+    })
+    .from(schema.orders)
+    .where(eq(schema.orders.id, id))
+    .limit(1)
+
+  if (!order) return null
+
+  const [items, addresses, shipments, events] = await Promise.all([
+    db
+      .select({
+        id: schema.orderItems.id,
+        sku: schema.orderItems.sku,
+        title: schema.orderItems.title,
+        quantity: schema.orderItems.quantity,
+        unitPriceCents: schema.orderItems.unitPriceCents,
+        subtotalCents: schema.orderItems.subtotalCents,
+        totalCents: schema.orderItems.totalCents,
+      })
+      .from(schema.orderItems)
+      .where(eq(schema.orderItems.orderId, id)),
+    db
+      .select({
+        name: schema.shippingAddresses.name,
+        phone: schema.shippingAddresses.phone,
+        street: schema.shippingAddresses.street,
+        exteriorNumber: schema.shippingAddresses.exteriorNumber,
+        interiorNumber: schema.shippingAddresses.interiorNumber,
+        neighborhood: schema.shippingAddresses.neighborhood,
+        city: schema.shippingAddresses.city,
+        state: schema.shippingAddresses.state,
+        postalCode: schema.shippingAddresses.postalCode,
+        country: schema.shippingAddresses.country,
+        references: schema.shippingAddresses.references,
+      })
+      .from(schema.shippingAddresses)
+      .where(eq(schema.shippingAddresses.orderId, id))
+      .limit(1),
+    db
+      .select({
+        provider: schema.shipments.provider,
+        carrier: schema.shipments.carrier,
+        service: schema.shipments.service,
+        trackingNumber: schema.shipments.trackingNumber,
+        trackingUrl: schema.shipments.trackingUrl,
+        labelUrl: schema.shipments.labelUrl,
+        realShippingCostCents: schema.shipments.realShippingCostCents,
+        status: schema.shipments.status,
+        error: schema.shipments.error,
+        createdAt: schema.shipments.createdAt,
+        updatedAt: schema.shipments.updatedAt,
+      })
+      .from(schema.shipments)
+      .where(eq(schema.shipments.orderId, id))
+      .limit(1),
+    db
+      .select({
+        id: schema.orderEvents.id,
+        type: schema.orderEvents.type,
+        message: schema.orderEvents.message,
+        createdAt: schema.orderEvents.createdAt,
+      })
+      .from(schema.orderEvents)
+      .where(eq(schema.orderEvents.orderId, id))
+      .orderBy(desc(schema.orderEvents.createdAt))
+      .limit(50),
+  ])
+
+  return {
+    order,
+    items,
+    address: addresses[0] ?? null,
+    shipment: shipments[0] ?? null,
+    events,
+  }
+}
+
+export async function getInventorySummary() {
+  const { db, schema } = await getDbModule()
+  return db
+    .select({
+      id: schema.inventory.id,
+      productId: schema.inventory.productId,
+      sku: schema.products.sku,
+      title: schema.products.title,
+      stockInitial: schema.inventory.stockInitial,
+      stockAvailable: schema.inventory.stockAvailable,
+      stockSold: schema.inventory.stockSold,
+      stockReserved: schema.inventory.stockReserved,
+      updatedAt: schema.inventory.updatedAt,
+    })
+    .from(schema.inventory)
+    .leftJoin(schema.products, eq(schema.products.id, schema.inventory.productId))
+    .limit(20)
+}
+
+export async function adjustInventory(input: AdminInventoryAdjustmentInput) {
+  const { db, schema } = await getDbModule()
+
+  return db.transaction(async (tx) => {
+    const [stock] = await tx
+      .select()
+      .from(schema.inventory)
+      .where(eq(schema.inventory.id, input.inventoryId))
+      .limit(1)
+
+    if (!stock) return null
+
+    const nextAvailable = stock.stockAvailable + input.deltaAvailable
+    if (nextAvailable < 0) {
+      throw new Error('El ajuste deja inventario negativo.')
+    }
+
+    const now = new Date()
+    const [updated] = await tx
+      .update(schema.inventory)
+      .set({
+        stockAvailable: nextAvailable,
+        updatedAt: now,
+      })
+      .where(eq(schema.inventory.id, stock.id))
+      .returning()
+
+    if (!updated) return null
+
+    await tx.insert(schema.inventoryMovements).values({
+      productId: updated.productId,
+      type: 'admin_adjustment',
+      quantity: input.deltaAvailable,
+      reason: input.reason,
+      createdBy: input.createdBy,
+      createdAt: now,
+    })
+
+    const [product] = await tx
+      .select({
+        sku: schema.products.sku,
+        title: schema.products.title,
+      })
+      .from(schema.products)
+      .where(eq(schema.products.id, updated.productId))
+      .limit(1)
+
+    return {
+      id: updated.id,
+      productId: updated.productId,
+      sku: product?.sku ?? null,
+      title: product?.title ?? null,
+      stockInitial: updated.stockInitial,
+      stockAvailable: updated.stockAvailable,
+      stockSold: updated.stockSold,
+      stockReserved: updated.stockReserved,
+      updatedAt: updated.updatedAt,
+    }
+  })
+}
+
+export async function listCoupons() {
+  const { db, schema } = await getDbModule()
+  return db
+    .select({
+      id: schema.coupons.id,
+      code: schema.coupons.code,
+      type: schema.coupons.type,
+      value: schema.coupons.value,
+      active: schema.coupons.active,
+      usageLimit: schema.coupons.usageLimit,
+      usedCount: schema.coupons.usedCount,
+      minSubtotalCents: schema.coupons.minSubtotalCents,
+      minQuantity: schema.coupons.minQuantity,
+      maxUsesPerEmail: schema.coupons.maxUsesPerEmail,
+      stackable: schema.coupons.stackable,
+      createdAt: schema.coupons.createdAt,
+      updatedAt: schema.coupons.updatedAt,
+    })
+    .from(schema.coupons)
+    .orderBy(desc(schema.coupons.createdAt))
+}
+
+export async function createCoupon(input: AdminCouponMutationInput) {
+  const { db, schema } = await getDbModule()
+  const now = new Date()
+  const [coupon] = await db
+    .insert(schema.coupons)
+    .values({
+      code: normalizeCouponCode(input.code),
+      type: input.type,
+      value: input.value,
+      active: input.active,
+      minQuantity: input.minQuantity,
+      minSubtotalCents: input.minSubtotalCents,
+      maxUsesPerEmail: input.maxUsesPerEmail,
+      usageLimit: input.usageLimit,
+      stackable: input.stackable,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+
+  return coupon ?? null
+}
+
+export async function updateCoupon(input: AdminCouponUpdateInput) {
+  const { db, schema } = await getDbModule()
+  const updates: Partial<typeof schema.coupons.$inferInsert> = {
+    updatedAt: new Date(),
+  }
+
+  if (typeof input.code === 'string') updates.code = normalizeCouponCode(input.code)
+  if (input.type) updates.type = input.type
+  if (typeof input.value === 'number') updates.value = input.value
+  if (typeof input.active === 'boolean') updates.active = input.active
+  if ('minQuantity' in input) updates.minQuantity = input.minQuantity ?? null
+  if ('minSubtotalCents' in input) updates.minSubtotalCents = input.minSubtotalCents ?? null
+  if ('maxUsesPerEmail' in input) updates.maxUsesPerEmail = input.maxUsesPerEmail ?? null
+  if ('usageLimit' in input) updates.usageLimit = input.usageLimit ?? null
+  if (typeof input.stackable === 'boolean') updates.stackable = input.stackable
+
+  const [coupon] = await db
+    .update(schema.coupons)
+    .set(updates)
+    .where(eq(schema.coupons.id, input.id))
+    .returning()
+
+  return coupon ?? null
+}
+
+export async function listInternationalQuoteLeads() {
+  const { db, schema } = await getDbModule()
+  return db
+    .select({
+      id: schema.internationalQuoteLeads.id,
+      name: schema.internationalQuoteLeads.name,
+      email: schema.internationalQuoteLeads.email,
+      whatsapp: schema.internationalQuoteLeads.whatsapp,
+      country: schema.internationalQuoteLeads.country,
+      city: schema.internationalQuoteLeads.city,
+      postalCode: schema.internationalQuoteLeads.postalCode,
+      quantity: schema.internationalQuoteLeads.quantity,
+      message: schema.internationalQuoteLeads.message,
+      status: schema.internationalQuoteLeads.status,
+      notes: schema.internationalQuoteLeads.notes,
+      createdAt: schema.internationalQuoteLeads.createdAt,
+    })
+    .from(schema.internationalQuoteLeads)
+    .orderBy(desc(schema.internationalQuoteLeads.createdAt))
+}
+
+export async function updateInternationalQuoteLead(input: {
+  id: number
+  status: InternationalLeadStatus
+  notes: string | null
+}) {
+  const { db, schema } = await getDbModule()
+  const [lead] = await db
+    .update(schema.internationalQuoteLeads)
+    .set({
+      status: input.status,
+      notes: input.notes,
+    })
+    .where(eq(schema.internationalQuoteLeads.id, input.id))
+    .returning()
+
+  return lead ?? null
+}
+
+export async function listEmailEvents() {
+  const { db, schema } = await getDbModule()
+  return db
+    .select({
+      id: schema.emailEvents.id,
+      to: schema.emailEvents.to,
+      subject: schema.emailEvents.subject,
+      template: schema.emailEvents.template,
+      status: schema.emailEvents.status,
+      error: schema.emailEvents.error,
+      relatedOrderId: schema.emailEvents.relatedOrderId,
+      relatedLeadId: schema.emailEvents.relatedLeadId,
+      sentAt: schema.emailEvents.sentAt,
+      createdAt: schema.emailEvents.createdAt,
+    })
+    .from(schema.emailEvents)
+    .orderBy(desc(schema.emailEvents.createdAt))
+    .limit(200)
+}
+
+export async function retryEmailEvent(id: number) {
+  const { db, schema } = await getDbModule()
+  const [event] = await db
+    .update(schema.emailEvents)
+    .set({
+      status: 'queued',
+      error: null,
+      providerMessageId: null,
+      sentAt: null,
+    })
+    .where(and(eq(schema.emailEvents.id, id), eq(schema.emailEvents.status, 'failed')))
+    .returning({
+      id: schema.emailEvents.id,
+      to: schema.emailEvents.to,
+      subject: schema.emailEvents.subject,
+      template: schema.emailEvents.template,
+      status: schema.emailEvents.status,
+      error: schema.emailEvents.error,
+      relatedOrderId: schema.emailEvents.relatedOrderId,
+      relatedLeadId: schema.emailEvents.relatedLeadId,
+      sentAt: schema.emailEvents.sentAt,
+      createdAt: schema.emailEvents.createdAt,
+    })
+
+  return event ?? null
 }
 
 export async function createAdminSession(email: string, tokenHash: string, expiresAt: Date) {
@@ -980,4 +1392,8 @@ function formatPublicMoney(cents: number, currency: string): string {
   } catch {
     return `$${(cents / 100).toLocaleString('es-MX')} ${currency || 'MXN'}`
   }
+}
+
+function normalizeCouponCode(code: string): string {
+  return code.trim().toUpperCase()
 }
