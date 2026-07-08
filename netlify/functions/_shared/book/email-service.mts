@@ -1,12 +1,15 @@
 import { Resend } from 'resend'
 
 import {
+  type EditableEmailTemplate,
+  type EditableEmailTemplateKey,
   renderInternalPaidOrderEmail,
   renderPurchaseConfirmationEmail,
   renderShipmentEmail,
 } from './email-templates.mts'
 import {
   createQueuedEmailEvent,
+  findEditableEmailTemplate,
   loadPaidOrderEmailSummary,
   loadShipmentEmailSummary,
   markEmailEventFailed,
@@ -60,6 +63,7 @@ type QueuedEmailEventInput = {
 
 export type SendPaidOrderEmailsDeps = {
   loadPaidOrderEmailSummary: (orderId: number) => Promise<PaidOrderEmailSummary | null>
+  loadEditableEmailTemplate?: (key: EditableEmailTemplateKey) => Promise<EditableEmailTemplate | null>
   createQueuedEmailEvent: (input: QueuedEmailEventInput) => Promise<EmailEventRecord | null>
   markEmailEventSent: (id: number, providerMessageId: string) => Promise<void>
   markEmailEventFailed: (id: number, error: string) => Promise<void>
@@ -68,6 +72,7 @@ export type SendPaidOrderEmailsDeps = {
 
 export type SendShipmentTrackingEmailDeps = {
   loadShipmentEmailSummary: (orderId: number) => Promise<ShipmentEmailSummary | null>
+  loadEditableEmailTemplate?: (key: EditableEmailTemplateKey) => Promise<EditableEmailTemplate | null>
   createQueuedEmailEvent: (input: QueuedEmailEventInput) => Promise<EmailEventRecord | null>
   markEmailEventSent: (id: number, providerMessageId: string) => Promise<void>
   markEmailEventFailed: (id: number, error: string) => Promise<void>
@@ -116,7 +121,8 @@ export async function sendPaidOrderEmails(
     throw new Error(`No se pudo cargar el resumen del pedido pagado ${orderId}.`)
   }
 
-  const purchaseEmail = renderPurchaseConfirmationEmail(summary)
+  const purchaseTemplate = await loadTemplateForEmail('purchase-confirmation', deps.loadEditableEmailTemplate)
+  const purchaseEmail = renderPurchaseConfirmationEmail(summary, purchaseTemplate)
   const internalEmail = renderInternalPaidOrderEmail(summary)
   const jobs = [
     {
@@ -177,7 +183,8 @@ export async function sendShipmentTrackingEmail(
     throw new Error(`No se pudo cargar el resumen de envio del pedido ${orderId}.`)
   }
 
-  const email = renderShipmentEmail(summary)
+  const shipmentTemplate = await loadTemplateForEmail('shipment-tracking', deps.loadEditableEmailTemplate)
+  const email = renderShipmentEmail(summary, shipmentTemplate)
   const event = await deps.createQueuedEmailEvent({
     to: summary.customerEmail,
     subject: email.subject,
@@ -207,6 +214,7 @@ export async function sendShipmentTrackingEmail(
 
 const defaultPaidOrderEmailDeps: SendPaidOrderEmailsDeps = {
   loadPaidOrderEmailSummary,
+  loadEditableEmailTemplate: loadEditableEmailTemplateForSend,
   createQueuedEmailEvent,
   markEmailEventSent,
   markEmailEventFailed,
@@ -215,10 +223,35 @@ const defaultPaidOrderEmailDeps: SendPaidOrderEmailsDeps = {
 
 const defaultShipmentTrackingEmailDeps: SendShipmentTrackingEmailDeps = {
   loadShipmentEmailSummary,
+  loadEditableEmailTemplate: loadEditableEmailTemplateForSend,
   createQueuedEmailEvent,
   markEmailEventSent,
   markEmailEventFailed,
   sendTransactionalEmail,
+}
+
+async function loadTemplateForEmail(
+  key: EditableEmailTemplateKey,
+  loader?: (key: EditableEmailTemplateKey) => Promise<EditableEmailTemplate | null>,
+): Promise<EditableEmailTemplate | null> {
+  if (!loader) return null
+  return loader(key)
+}
+
+async function loadEditableEmailTemplateForSend(
+  key: EditableEmailTemplateKey,
+): Promise<EditableEmailTemplate | null> {
+  const template = await findEditableEmailTemplate(key)
+  if (!template) return null
+
+  return {
+    key,
+    subjectTemplate: template.subjectTemplate,
+    headline: template.headline,
+    bodyTemplate: template.bodyTemplate,
+    buttonLabel: template.buttonLabel,
+    footerNote: template.footerNote,
+  }
 }
 
 async function sendWithResend(

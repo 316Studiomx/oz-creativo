@@ -6,6 +6,7 @@ import {
   shouldSendPaidOrderEmailsForStripeMark,
 } from '../netlify/functions/book-stripe-webhook.mts'
 import {
+  applyEmailTemplate,
   renderInternalPaidOrderEmail,
   renderPurchaseConfirmationEmail,
   renderShipmentEmail,
@@ -34,6 +35,47 @@ test('purchase confirmation includes order details, free shipping, support, and 
   assert.match(email.html, /Calle 1 #2/)
   assert.match(email.text, /oz@expocuspide.com/)
   assert.match(email.text, /factura/i)
+})
+
+test('email shell stays readable in dark-mode email clients', () => {
+  const purchaseEmail = renderPurchaseConfirmationEmail(paidOrder)
+  const shipmentEmail = renderShipmentEmail({
+    ...paidOrder,
+    carrier: 'DHL',
+    service: 'Express',
+    trackingNumber: 'TRACK123',
+    trackingUrl: 'https://tracking.example/TRACK123',
+  })
+
+  for (const html of [purchaseEmail.html, shipmentEmail.html]) {
+    assert.match(html, /color-scheme:\s*light only/i)
+    assert.match(html, /background:\s*#ffffff/i)
+    assert.match(html, /color:\s*#141414/i)
+    assert.match(html, /data-ogsc/i)
+    assert.doesNotMatch(html, /background:#111111;color:#242424/i)
+  }
+})
+
+test('editable customer email templates interpolate allowed variables safely', () => {
+  const custom = applyEmailTemplate(
+    {
+      key: 'purchase-confirmation',
+      subjectTemplate: 'Pedido {{orderNumber}} listo para {{customerName}}',
+      headline: 'Hola {{customerName}}',
+      bodyTemplate:
+        'Tu pedido {{orderNumber}} por {{total}} ya está confirmado.\nCantidad: {{quantityLabel}}.',
+      buttonLabel: 'Ver mi pedido',
+      footerNote: 'Gracias por comprar {{bookTitle}}.',
+    },
+    paidOrder,
+  )
+
+  assert.equal(custom.subject, 'Pedido HM-20260706-ABC123 listo para Oz <script>alert(1)</script>')
+  assert.match(custom.html, /Hola Oz &lt;script&gt;alert\(1\)&lt;\/script&gt;/)
+  assert.match(custom.html, /Tu pedido HM-20260706-ABC123 por \$998\.00 MXN/)
+  assert.match(custom.html, /Ver mi pedido/)
+  assert.match(custom.text, /Gracias por comprar Hazlo Magnífico/)
+  assert.doesNotMatch(custom.html, /<script>/)
 })
 
 test('email templates escape customer-controlled HTML', () => {

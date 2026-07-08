@@ -106,6 +106,29 @@ export type ShipmentEmailSummary = PaidOrderEmailSummary & {
   trackingUrl: string
 }
 
+export type EditableEmailTemplateRecord = {
+  id: number
+  key: string
+  label: string
+  description: string
+  subjectTemplate: string
+  headline: string
+  bodyTemplate: string
+  buttonLabel: string
+  footerNote: string
+  active: boolean
+  updatedAt: Date
+}
+
+export type EditableEmailTemplateUpdateInput = {
+  key: string
+  subjectTemplate: string
+  headline: string
+  bodyTemplate: string
+  buttonLabel: string
+  footerNote: string
+}
+
 export type PublicOrderStatus = {
   orderNumber: string
   quantity?: number
@@ -912,6 +935,92 @@ export async function retryEmailEvent(id: number) {
     })
 
   return event ?? null
+}
+
+export async function listEditableEmailTemplates(): Promise<EditableEmailTemplateRecord[]> {
+  const { db, schema } = await getDbModule()
+  return db
+    .select({
+      id: schema.emailTemplates.id,
+      key: schema.emailTemplates.key,
+      label: schema.emailTemplates.label,
+      description: schema.emailTemplates.description,
+      subjectTemplate: schema.emailTemplates.subjectTemplate,
+      headline: schema.emailTemplates.headline,
+      bodyTemplate: schema.emailTemplates.bodyTemplate,
+      buttonLabel: schema.emailTemplates.buttonLabel,
+      footerNote: schema.emailTemplates.footerNote,
+      active: schema.emailTemplates.active,
+      updatedAt: schema.emailTemplates.updatedAt,
+    })
+    .from(schema.emailTemplates)
+    .where(eq(schema.emailTemplates.active, true))
+    .orderBy(asc(schema.emailTemplates.id))
+}
+
+export async function findEditableEmailTemplate(
+  key: string,
+): Promise<EditableEmailTemplateRecord | null> {
+  if (!isEditableEmailTemplateKey(key)) {
+    return null
+  }
+
+  const { db, schema } = await getDbModule()
+  const [template] = await db
+    .select({
+      id: schema.emailTemplates.id,
+      key: schema.emailTemplates.key,
+      label: schema.emailTemplates.label,
+      description: schema.emailTemplates.description,
+      subjectTemplate: schema.emailTemplates.subjectTemplate,
+      headline: schema.emailTemplates.headline,
+      bodyTemplate: schema.emailTemplates.bodyTemplate,
+      buttonLabel: schema.emailTemplates.buttonLabel,
+      footerNote: schema.emailTemplates.footerNote,
+      active: schema.emailTemplates.active,
+      updatedAt: schema.emailTemplates.updatedAt,
+    })
+    .from(schema.emailTemplates)
+    .where(and(eq(schema.emailTemplates.key, key), eq(schema.emailTemplates.active, true)))
+    .limit(1)
+
+  return template ?? null
+}
+
+export async function updateEditableEmailTemplate(
+  input: EditableEmailTemplateUpdateInput,
+): Promise<EditableEmailTemplateRecord | null> {
+  if (!isEditableEmailTemplateKey(input.key)) {
+    return null
+  }
+
+  const { db, schema } = await getDbModule()
+  const [template] = await db
+    .update(schema.emailTemplates)
+    .set({
+      subjectTemplate: input.subjectTemplate,
+      headline: input.headline,
+      bodyTemplate: input.bodyTemplate,
+      buttonLabel: input.buttonLabel,
+      footerNote: input.footerNote,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(schema.emailTemplates.key, input.key), eq(schema.emailTemplates.active, true)))
+    .returning({
+      id: schema.emailTemplates.id,
+      key: schema.emailTemplates.key,
+      label: schema.emailTemplates.label,
+      description: schema.emailTemplates.description,
+      subjectTemplate: schema.emailTemplates.subjectTemplate,
+      headline: schema.emailTemplates.headline,
+      bodyTemplate: schema.emailTemplates.bodyTemplate,
+      buttonLabel: schema.emailTemplates.buttonLabel,
+      footerNote: schema.emailTemplates.footerNote,
+      active: schema.emailTemplates.active,
+      updatedAt: schema.emailTemplates.updatedAt,
+    })
+
+  return template ?? null
 }
 
 export async function createAdminSession(email: string, tokenHash: string, expiresAt: Date) {
@@ -1757,6 +1866,10 @@ function formatPublicMoney(cents: number, currency: string): string {
   } catch {
     return `$${(cents / 100).toLocaleString('es-MX')} ${currency || 'MXN'}`
   }
+}
+
+function isEditableEmailTemplateKey(key: string): boolean {
+  return key === 'purchase-confirmation' || key === 'shipment-tracking'
 }
 
 function normalizeCouponCode(code: string): string {

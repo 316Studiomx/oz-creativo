@@ -240,6 +240,23 @@ export const emailEvents = pgTable('email_events', {
   relatedOrderIdx: index('email_events_related_order_id_idx').on(table.relatedOrderId),
 }))
 
+export const emailTemplates = pgTable('email_templates', {
+  id: serial('id').primaryKey(),
+  key: text('key').notNull().unique(),
+  label: text('label').notNull(),
+  description: text('description').notNull(),
+  subjectTemplate: text('subject_template').notNull(),
+  headline: text('headline').notNull(),
+  bodyTemplate: text('body_template').notNull(),
+  buttonLabel: text('button_label').notNull().default(''),
+  footerNote: text('footer_note').notNull().default(''),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  keyIdx: uniqueIndex('email_templates_key_idx').on(table.key),
+}))
+
 export const bookReviews = pgTable('book_reviews', {
   id: serial('id').primaryKey(),
   author: text('author').notNull(),

@@ -24,6 +24,10 @@ const adminApiFiles = [
     routes: ['/api/book/admin/emails', '/api/book/admin/emails/:id/retry'],
   },
   {
+    path: 'netlify/functions/book-admin-email-templates.mts',
+    routes: ['/api/book/admin/email-templates', '/api/book/admin/email-templates/:key'],
+  },
+  {
     path: 'netlify/functions/book-admin-reviews.mts',
     routes: ['/api/book/admin/reviews'],
   },
@@ -44,6 +48,7 @@ const adminUiFiles = [
   'src/admin/AdminCoupons.tsx',
   'src/admin/AdminInternationalQuotes.tsx',
   'src/admin/AdminEmails.tsx',
+  'src/admin/AdminEmailTemplates.tsx',
   'src/admin/AdminReviews.tsx',
 ]
 
@@ -88,6 +93,9 @@ test('admin repository helpers list only safe management data', () => {
     'updateInternationalQuoteLead',
     'listEmailEvents',
     'retryEmailEvent',
+    'listEditableEmailTemplates',
+    'findEditableEmailTemplate',
+    'updateEditableEmailTemplate',
     'listBookReviews',
     'listPublicBookReviews',
     'createBookReview',
@@ -103,7 +111,16 @@ test('admin repository helpers list only safe management data', () => {
 test('admin app exposes all management tabs and components', () => {
   const appSource = readFileSync('src/admin/AdminApp.tsx', 'utf8')
 
-  for (const tab of ['dashboard', 'orders', 'inventory', 'coupons', 'international', 'emails', 'reviews']) {
+  for (const tab of [
+    'dashboard',
+    'orders',
+    'inventory',
+    'coupons',
+    'international',
+    'emails',
+    'emailTemplates',
+    'reviews',
+  ]) {
     assert.equal(appSource.includes(`'${tab}'`), true, `missing ${tab} tab`)
   }
 
@@ -114,6 +131,7 @@ test('admin app exposes all management tabs and components', () => {
     'AdminCoupons',
     'AdminInternationalQuotes',
     'AdminEmails',
+    'AdminEmailTemplates',
     'AdminReviews',
   ]) {
     assert.equal(appSource.includes(component), true, `missing ${component}`)
@@ -141,6 +159,10 @@ test('admin management screens fetch with credentials include and expected endpo
     true,
   )
   assert.equal(readFileSync('src/admin/AdminEmails.tsx', 'utf8').includes('/api/book/admin/emails'), true)
+  assert.equal(
+    readFileSync('src/admin/AdminEmailTemplates.tsx', 'utf8').includes('/api/book/admin/email-templates'),
+    true,
+  )
   assert.equal(readFileSync('src/admin/AdminReviews.tsx', 'utf8').includes('/api/book/admin/reviews'), true)
 })
 
@@ -191,10 +213,38 @@ test('admin screens expose operational management fields', () => {
   assert.equal(emailsSource.includes('failed'), true)
   assert.equal(emailsSource.includes('retry'), true)
 
+  const templatesSource = readFileSync('src/admin/AdminEmailTemplates.tsx', 'utf8')
+  for (const label of [
+    'Confirmación de compra',
+    'Seguimiento al paquete',
+    'Asunto',
+    'Título',
+    'Cuerpo',
+    'Texto del botón',
+    'Guardar template',
+    '{{orderNumber}}',
+  ]) {
+    assert.equal(templatesSource.includes(label), true, `email templates missing ${label}`)
+  }
+
   const reviewsSource = readFileSync('src/admin/AdminReviews.tsx', 'utf8')
   for (const label of ['Autor', 'Cargo / rol', 'Reseña', 'Visible', 'Agregar reseña']) {
     assert.equal(reviewsSource.includes(label), true, `reviews missing ${label}`)
   }
+})
+
+test('email template persistence has database schema and default customer templates', () => {
+  const schemaSource = readFileSync('db/schema.ts', 'utf8')
+  const migrationSource = readFileSync(
+    'netlify/database/migrations/20260708182000_create-email-templates/migration.sql',
+    'utf8',
+  )
+
+  assert.equal(schemaSource.includes('emailTemplates'), true)
+  assert.equal(migrationSource.includes('CREATE TABLE IF NOT EXISTS email_templates'), true)
+  assert.equal(migrationSource.includes('purchase-confirmation'), true)
+  assert.equal(migrationSource.includes('shipment-tracking'), true)
+  assert.equal(migrationSource.includes('GRANT SELECT, INSERT, UPDATE, DELETE ON email_templates'), true)
 })
 
 test('admin orders renders shipment URLs only after safe http validation', () => {

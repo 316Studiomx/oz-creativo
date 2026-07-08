@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useState } from 'react'
 
 import { AdminCoupons } from './AdminCoupons'
+import { AdminEmailTemplates } from './AdminEmailTemplates'
 import { AdminDashboard } from './AdminDashboard'
 import { AdminEmails } from './AdminEmails'
 import { AdminInternationalQuotes } from './AdminInternationalQuotes'
@@ -15,7 +16,16 @@ type SessionState = {
   email: string | null
 }
 
-const tabs = ['dashboard', 'orders', 'inventory', 'coupons', 'international', 'emails', 'reviews'] as const
+const tabs = [
+  'dashboard',
+  'orders',
+  'inventory',
+  'coupons',
+  'international',
+  'emails',
+  'emailTemplates',
+  'reviews',
+] as const
 
 type AdminTab = (typeof tabs)[number]
 
@@ -31,6 +41,7 @@ const tabLabels: Record<AdminTab, string> = {
   coupons: 'Cupones',
   international: 'Internacional',
   emails: 'Emails',
+  emailTemplates: 'Templates',
   reviews: 'Reseñas',
 }
 
@@ -148,6 +159,7 @@ export function AdminApp() {
           {activeTab === 'coupons' ? <AdminCoupons /> : null}
           {activeTab === 'international' ? <AdminInternationalQuotes /> : null}
           {activeTab === 'emails' ? <AdminEmails /> : null}
+          {activeTab === 'emailTemplates' ? <AdminEmailTemplates /> : null}
           {activeTab === 'reviews' ? <AdminReviews /> : null}
         </section>
       </div>
