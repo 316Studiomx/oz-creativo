@@ -36,8 +36,9 @@ El flujo existente de cotizaciones/pagos privados se mantiene separado.
 2. Se crea una orden local y una sesion de Stripe Checkout.
 3. Stripe confirma el pago en `/api/book/webhooks/stripe`.
 4. El webhook marca el pedido como pagado, descuenta inventario, registra cupones y manda correos de compra.
-5. La guia no se crea automaticamente: desde `/admin`, se cotiza y se genera la guia de Skydropx.
+5. El webhook cotiza Skydropx, selecciona la tarifa valida mas barata y crea la guia automaticamente.
 6. Cuando Skydropx devuelve guia y etiqueta, se guarda el tracking y se manda el correo de rastreo una sola vez.
+7. Si Skydropx rechaza la solicitud, el pedido queda en `label_error` y `/admin` funciona como respaldo para revisar y reintentar.
 
 ### Base de datos
 
@@ -122,10 +123,11 @@ Copia el signing secret del webhook en `STRIPE_WEBHOOK_SECRET_BOOK`.
 
 ### Skydropx
 
-Skydropx se ejecuta solamente desde admin despues de pago confirmado.
+Skydropx se ejecuta automaticamente despues de pago confirmado por Stripe. El panel admin queda como respaldo para revisar pedidos y reintentar errores.
 
-- Cotizacion: admin solicita tarifas desde el detalle de pedido.
-- Guia: admin elige tarifa y confirma creacion.
+- Cotizacion automatica: el webhook solicita tarifas desde Skydropx.
+- Seleccion de tarifa: se usa la tarifa valida mas barata y, si hay empate, la de menor tiempo estimado.
+- Guia automatica: el webhook crea la guia con esa tarifa.
 - Seguridad: si Skydropx responde sin tracking o sin etiqueta, el pedido queda en `label_error` para reintento.
 - Tracking: el correo de rastreo usa una llave idempotente por pedido y numero de guia.
 

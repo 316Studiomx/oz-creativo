@@ -286,3 +286,45 @@ test('Stripe webhook email helper catches delivery failures', async () => {
 
   assert.equal(logged.length, 1)
 })
+
+test('Stripe webhook shipment helper only runs for newly marked paid orders', async () => {
+  const webhook = await import('../netlify/functions/book-stripe-webhook.mts')
+  assert.equal(typeof webhook.createShipmentAfterStripeMark, 'function')
+
+  const calls: number[] = []
+
+  await webhook.createShipmentAfterStripeMark(null, async (orderId: number) => {
+    calls.push(orderId)
+  })
+  await webhook.createShipmentAfterStripeMark(
+    { order: { id: 42 }, shouldSendPaidEmails: false },
+    async (orderId: number) => {
+      calls.push(orderId)
+    },
+  )
+  await webhook.createShipmentAfterStripeMark(
+    { order: { id: 43 }, shouldSendPaidEmails: true },
+    async (orderId: number) => {
+      calls.push(orderId)
+    },
+  )
+
+  assert.deepEqual(calls, [43])
+})
+
+test('Stripe webhook shipment helper logs failures without throwing', async () => {
+  const webhook = await import('../netlify/functions/book-stripe-webhook.mts')
+  const logged: unknown[] = []
+
+  await webhook.createShipmentAfterStripeMark(
+    { order: { id: 42 }, shouldSendPaidEmails: true },
+    async () => {
+      throw new Error('Skydrop rechazo la guia')
+    },
+    (...args: unknown[]) => {
+      logged.push(args)
+    },
+  )
+
+  assert.equal(logged.length, 1)
+})

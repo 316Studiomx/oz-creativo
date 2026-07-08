@@ -401,3 +401,57 @@ test('admin shipment creation is only allowed for paid eligible orders', () => {
     false,
   )
 })
+
+test('automatic Skydropx rate selection chooses the cheapest valid rate with fastest tie-breaker', async () => {
+  const fulfillment = await import('../netlify/functions/_shared/book/shipping-fulfillment.mts')
+  assert.equal(typeof fulfillment.selectAutomaticSkydropxRate, 'function')
+
+  const selected = fulfillment.selectAutomaticSkydropxRate([
+    {
+      rateId: 'expensive-fast',
+      carrier: 'DHL',
+      service: 'Express',
+      totalCents: 24000,
+      currency: 'MXN',
+      estimatedDays: 1,
+    },
+    {
+      rateId: 'cheap-slow',
+      carrier: 'Estafeta',
+      service: 'Terrestre',
+      totalCents: 12000,
+      currency: 'MXN',
+      estimatedDays: 5,
+    },
+    {
+      rateId: 'cheap-fast',
+      carrier: 'FedEx',
+      service: 'Economico',
+      totalCents: 12000,
+      currency: 'MXN',
+      estimatedDays: 2,
+    },
+  ])
+
+  assert.equal(selected.rateId, 'cheap-fast')
+})
+
+test('automatic Skydropx rate selection rejects empty or unusable rates', async () => {
+  const fulfillment = await import('../netlify/functions/_shared/book/shipping-fulfillment.mts')
+
+  assert.throws(() => fulfillment.selectAutomaticSkydropxRate([]), /tarifas/)
+  assert.throws(
+    () =>
+      fulfillment.selectAutomaticSkydropxRate([
+        {
+          rateId: '',
+          carrier: 'DHL',
+          service: 'Express',
+          totalCents: 0,
+          currency: 'MXN',
+          estimatedDays: 1,
+        },
+      ]),
+    /tarifas/,
+  )
+})

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   AdminPanelMessage,
@@ -84,6 +84,7 @@ export function AdminOrders() {
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState('')
+  const detailRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     let active = true
@@ -140,6 +141,11 @@ export function AdminOrders() {
     }
   }
 
+  useEffect(() => {
+    if (!selectedOrder) return
+    detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [selectedOrder?.order.id])
+
   if (loading) return <AdminPanelMessage title="Cargando pedidos..." />
   if (error && orders.length === 0) return <AdminPanelMessage title={error} tone="error" />
   if (orders.length === 0) return <AdminPanelMessage title="Aun no hay pedidos." />
@@ -181,7 +187,7 @@ export function AdminOrders() {
                   <td className="px-3 py-3">
                     <StatusPill label={order.shippingStatus} />
                     {order.shippingStatus === 'label_pending' ? (
-                      <p className="mt-2 text-xs text-yellow">label_pending: guía pendiente para Task 11.</p>
+                      <p className="mt-2 text-xs text-yellow">Guía pendiente o en proceso automático.</p>
                     ) : null}
                   </td>
                   <td className="px-3 py-3">{order.couponCode || 'Sin cupón'}</td>
@@ -222,10 +228,12 @@ export function AdminOrders() {
 
       {detailLoading ? <AdminPanelMessage title="Cargando detalle..." /> : null}
       {selectedOrder ? (
-        <OrderDetailPanel
-          detail={selectedOrder}
-          onRefresh={() => loadDetail(selectedOrder.order.id)}
-        />
+        <div ref={detailRef}>
+          <OrderDetailPanel
+            detail={selectedOrder}
+            onRefresh={() => loadDetail(selectedOrder.order.id)}
+          />
+        </div>
       ) : null}
     </div>
   )

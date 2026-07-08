@@ -7,6 +7,7 @@ import {
   markOrderPaidByStripe,
   type MarkOrderPaidByStripeResult,
 } from './_shared/book/repositories.mts'
+import { createAutomaticShipmentForOrder } from './_shared/book/shipping-fulfillment.mts'
 
 declare const Netlify: {
   env: {
@@ -63,6 +64,7 @@ export default async (req: Request) => {
   })
 
   await sendPaidOrderEmailsAfterStripeMark(paidOrderResult)
+  await createShipmentAfterStripeMark(paidOrderResult)
 
   return jsonResponse({ received: true, ok: true })
 }
@@ -102,6 +104,25 @@ export async function sendPaidOrderEmailsAfterStripeMark(
     await send(result.order.id)
   } catch (error) {
     logError('Book paid-order email delivery failed.', {
+      orderId: result.order.id,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
+export async function createShipmentAfterStripeMark(
+  result: MarkOrderPaidByStripeResult | null,
+  createShipment: (orderId: number) => Promise<unknown> = createAutomaticShipmentForOrder,
+  logError: (...args: unknown[]) => void = console.error,
+): Promise<void> {
+  if (!shouldSendPaidOrderEmailsForStripeMark(result)) {
+    return
+  }
+
+  try {
+    await createShipment(result.order.id)
+  } catch (error) {
+    logError('Book automatic shipment creation failed.', {
       orderId: result.order.id,
       error: error instanceof Error ? error.message : String(error),
     })
