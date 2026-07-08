@@ -55,7 +55,11 @@ export async function createAutomaticShipmentForOrder(
     }
 
     const input = buildShipmentInputFromOrderDetail(detail)
-    const quotation = await createQuotation(input)
+    const existingQuotationId = detail.shipment?.quotationId?.trim()
+    const quotation = existingQuotationId
+      ? { quotationId: existingQuotationId, raw: undefined }
+      : await createQuotation(input)
+
     await markOrderShippingQuoted({
       orderId,
       quotationId: quotation.quotationId,

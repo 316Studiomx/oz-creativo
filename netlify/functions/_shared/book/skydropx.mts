@@ -46,11 +46,16 @@ type SkydropxRequestOptions = {
   fetchImpl?: typeof fetch
 }
 
+const DEFAULT_CONSIGNMENT_NOTE = '14111500'
+const DEFAULT_PACKAGE_TYPE = '4G'
+const DEFAULT_ADDRESS_REFERENCE = 'Sin referencia'
+
 export const SKYDROPX_ENDPOINTS = {
   token: '/api/v1/oauth/token',
   quotations: '/api/v1/quotations',
   quotationDetail: (quotationId: string) => `/api/v1/quotations/${encodeURIComponent(quotationId)}`,
   shipments: '/api/v1/shipments/',
+  shipmentDetail: (shipmentId: string) => `/api/v1/shipments/${encodeURIComponent(shipmentId)}`,
   tracking: (trackingNumber: string, carrierName: string) => {
     const params = new URLSearchParams({
       tracking_number: trackingNumber,
@@ -109,12 +114,12 @@ export function buildSkydropxShipmentBody(input: {
   const pack: Record<string, string | number | boolean> = {
     package_number: '1',
     package_protected: false,
+    consignment_note: normalizeConsignmentNote(input.consignmentNote),
+    package_type: normalizePackageType(input.packageType),
     ...toSkydropxParcel(input.parcel),
   }
   const declaredValue = centsToMoney(input.declaredValueCents)
   if (declaredValue != null) pack.declared_value = declaredValue
-  if (input.consignmentNote?.trim()) pack.consignment_note = input.consignmentNote.trim()
-  if (input.packageType?.trim()) pack.package_type = input.packageType.trim()
 
   return {
     shipment: {
@@ -176,11 +181,42 @@ export async function createShipment(
     body: buildSkydropxShipmentBody(input),
   }, options)
   const shipment = normalizeSkydropxShipment(raw)
+  if (!isSkydropxShipmentReady(shipment) && shipment.shipmentId) {
+    return waitForShipmentReady(shipment.shipmentId, raw, options)
+  }
+
   assertSkydropxShipmentReady(shipment)
   return {
     ...shipment,
     raw,
   }
+}
+
+async function waitForShipmentReady(
+  shipmentId: string,
+  initialRaw: unknown,
+  options: SkydropxRequestOptions,
+): Promise<NormalizedSkydropxShipment & { raw: unknown }> {
+  let latestRaw = initialRaw
+  let latestShipment = normalizeSkydropxShipment(initialRaw)
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await sleep(1500)
+    latestRaw = await skydropxRequest(SKYDROPX_ENDPOINTS.shipmentDetail(shipmentId), {
+      method: 'GET',
+    }, options)
+    latestShipment = normalizeSkydropxShipment(latestRaw)
+    if (isSkydropxShipmentReady(latestShipment)) {
+      return {
+        ...latestShipment,
+        raw: latestRaw,
+      }
+    }
+  }
+
+  throw new Error(
+    `Skydropx creo el envio ${shipmentId} sin tracking number o URL de etiqueta despues de varios intentos.`,
+  )
 }
 
 export async function getTracking(
@@ -262,6 +298,10 @@ export function assertSkydropxShipmentReady(shipment: NormalizedSkydropxShipment
   }
 }
 
+function isSkydropxShipmentReady(shipment: NormalizedSkydropxShipment): boolean {
+  return Boolean(shipment.trackingNumber && shipment.labelUrl)
+}
+
 export function sanitizeSkydropxError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error || 'Error de Skydropx.')
   return message
@@ -316,16 +356,30 @@ function toSkydropxApiAddress(
   if (address.reference?.trim()) apiAddress.reference = address.reference.trim()
 
   if (options.includeShipmentAliases) {
+    const reference = normalizeAddressReference(address.reference)
+    apiAddress.reference = reference
     apiAddress.province = address.state
     apiAddress.city = address.city
     apiAddress.neighborhood = address.neighborhood
     if (address.interiorNumber?.trim()) apiAddress.apartment_number = address.interiorNumber.trim()
-    if (address.reference?.trim()) {
-      apiAddress.further_information = address.reference.trim().slice(0, 70)
-    }
+    apiAddress.further_information = reference
   }
 
   return apiAddress
+}
+
+function normalizeConsignmentNote(value: string | null | undefined): string {
+  const normalized = value?.trim()
+  return normalized && /^\d{8}$/.test(normalized) ? normalized : DEFAULT_CONSIGNMENT_NOTE
+}
+
+function normalizePackageType(value: string | null | undefined): string {
+  const normalized = value?.trim()
+  return normalized && /^[A-Z0-9]+$/.test(normalized) ? normalized : DEFAULT_PACKAGE_TYPE
+}
+
+function normalizeAddressReference(value: string | null | undefined): string {
+  return (value?.trim() || DEFAULT_ADDRESS_REFERENCE).slice(0, 30)
 }
 
 function toSkydropxParcel(parcel: SkydropxParcel) {
@@ -348,6 +402,10 @@ function centsToMoney(value: number | null | undefined): number | null {
     return null
   }
   return Number((value / 100).toFixed(2))
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function readJsonResponse(response: Response): Promise<unknown> {
@@ -383,14 +441,55 @@ function readSkydropxError(payload: unknown, fallback: string): string {
   const error = payload.error
   if (typeof error === 'string') return error
   if (isRecord(error) && typeof error.message === 'string') return error.message
+  if (isRecord(error) && typeof error.detail === 'string') return error.detail
+  if (typeof payload.error_description === 'string') return payload.error_description
   if (typeof payload.message === 'string') return payload.message
   if (Array.isArray(payload.errors) && payload.errors.length > 0) {
-    const first = payload.errors[0]
-    if (typeof first === 'string') return first
-    if (isRecord(first) && typeof first.detail === 'string') return first.detail
-    if (isRecord(first) && typeof first.message === 'string') return first.message
+    const message = payload.errors
+      .map(formatSkydropxErrorRecord)
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(' | ')
+    if (message) return message
+  }
+  if (isRecord(payload.errors)) {
+    const message = Object.entries(payload.errors)
+      .map(([field, value]) => `${field}: ${formatSkydropxErrorValue(value)}`)
+      .filter((value) => !value.endsWith(': '))
+      .slice(0, 5)
+      .join(' | ')
+    if (message) return message
+  }
+  const attributes = isRecord(payload.data) && isRecord(payload.data.attributes) ? payload.data.attributes : null
+  if (attributes && Array.isArray(attributes.errors) && attributes.errors.length > 0) {
+    const message = attributes.errors
+      .map(formatSkydropxErrorRecord)
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(' | ')
+    if (message) return message
   }
   return fallback
+}
+
+function formatSkydropxErrorRecord(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (!isRecord(value)) return ''
+
+  const detail = readString(value, ['detail', 'message', 'title', 'error'])
+  const code = readString(value, ['code', 'status'])
+  const source = isRecord(value.source)
+    ? readString(value.source, ['pointer', 'parameter', 'field'])
+    : readString(value, ['field', 'param', 'parameter'])
+
+  return [source, code, detail].filter(Boolean).join(': ')
+}
+
+function formatSkydropxErrorValue(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (Array.isArray(value)) return value.map(formatSkydropxErrorValue).filter(Boolean).join(', ')
+  if (isRecord(value)) return formatSkydropxErrorRecord(value) || JSON.stringify(value)
+  return String(value ?? '')
 }
 
 function collectRateCandidates(raw: unknown): unknown[] {

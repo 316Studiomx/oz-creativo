@@ -74,6 +74,7 @@ type ShippingActionResponse = {
   ok?: boolean
   message?: string
   quotationId?: string
+  rate?: ShippingRate
   rates?: ShippingRate[]
   shipment?: OrderDetail['shipment']
 }
@@ -319,6 +320,34 @@ function OrderDetailPanel({
     }
   }
 
+  const createAutomaticShipment = async () => {
+    if (!window.confirm('Crear guía automática con la tarifa válida más barata de Skydropx?')) return
+
+    setShippingLoading(true)
+    setShippingError('')
+    setShippingMessage('')
+    try {
+      const response = await fetch(`/api/book/admin/orders/${detail.order.id}/auto-shipment`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const payload = await readAdminResponse<ShippingActionResponse>(response)
+      if (!response.ok || !payload.shipment) {
+        setShippingError(payload.message || 'No se pudo crear guía automática.')
+        await onRefresh()
+        return
+      }
+      setQuotationId(payload.quotationId || payload.shipment.quotationId || '')
+      setSelectedRateId(payload.rate?.rateId || payload.shipment.rateId || '')
+      setShippingMessage('Guía automática creada. Se intentó enviar el correo de rastreo.')
+      await onRefresh()
+    } catch {
+      setShippingError('No se pudo crear guía automática.')
+    } finally {
+      setShippingLoading(false)
+    }
+  }
+
   return (
     <AdminSection title={`Detalle ${detail.order.orderNumber}`}>
       <div className="grid gap-4 lg:grid-cols-3">
@@ -386,6 +415,14 @@ function OrderDetailPanel({
             onClick={quoteShipping}
           >
             {shippingLoading ? 'Procesando...' : 'Cotizar envío'}
+          </button>
+          <button
+            className="rounded bg-yellow px-3 py-2 text-xs font-bold text-ink hover:bg-paper disabled:cursor-not-allowed disabled:bg-paper/20 disabled:text-muted"
+            type="button"
+            disabled={!canManageShipping(detail.order) || shippingLoading}
+            onClick={createAutomaticShipment}
+          >
+            Crear guía automática
           </button>
           {shipment?.trackingNumber ? (
             <StatusPill label="label_created" />

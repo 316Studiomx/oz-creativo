@@ -6,6 +6,7 @@ import {
   buildSkydropxQuotationBody,
   buildSkydropxShipmentBody,
   assertSkydropxShipmentReady,
+  createQuotation,
   normalizeSkydropxRate,
   normalizeSkydropxRates,
   normalizeSkydropxShipment,
@@ -48,6 +49,7 @@ test('Skydropx adapter exposes current Pro API endpoint paths', () => {
   assert.equal(SKYDROPX_ENDPOINTS.quotations, '/api/v1/quotations')
   assert.equal(SKYDROPX_ENDPOINTS.quotationDetail('quote_123'), '/api/v1/quotations/quote_123')
   assert.equal(SKYDROPX_ENDPOINTS.shipments, '/api/v1/shipments/')
+  assert.equal(SKYDROPX_ENDPOINTS.shipmentDetail('ship_123'), '/api/v1/shipments/ship_123')
   assert.equal(
     SKYDROPX_ENDPOINTS.tracking('TRACK 123', 'DHL'),
     '/api/v1/shipments/tracking?tracking_number=TRACK+123&carrier_name=DHL',
@@ -275,13 +277,13 @@ test('builds shipment body with selected rate and package options', () => {
     {
       package_number: '1',
       package_protected: false,
+      consignment_note: '14111500',
+      package_type: '4G',
       declared_value: 499,
       length: 24,
       width: 17,
       height: 3,
       weight: 0.3,
-      consignment_note: 'Hazlo Magnifico',
-      package_type: 'box',
     },
   ])
 })
@@ -325,6 +327,8 @@ test('shipment address body carries email company reference and conservative ali
   })
   assert.equal(body.shipment.address_from.company, 'Oz Creativo')
   assert.equal(body.shipment.address_from.email, 'pedidos@example.com')
+  assert.equal(body.shipment.address_from.reference, 'Sin referencia')
+  assert.equal(body.shipment.address_from.further_information, 'Sin referencia')
 })
 
 test('shipment creation guard rejects missing tracking number or label URL', () => {
@@ -358,6 +362,50 @@ test('shipment creation guard rejects missing tracking number or label URL', () 
   )
 })
 
+test('Skydropx request errors preserve structured validation details', async () => {
+  let requestCount = 0
+  await assert.rejects(
+    () =>
+      createQuotation(
+        {
+          origin,
+          destination,
+          parcel: {
+            lengthCm: 24,
+            widthCm: 17,
+            heightCm: 3,
+            weightGrams: 300,
+          },
+        },
+        {
+          env: {
+            SKYDROPX_CLIENT_ID: 'client_id',
+            SKYDROPX_CLIENT_SECRET: 'client_secret',
+          },
+          fetchImpl: async () => {
+            requestCount += 1
+            if (requestCount === 1) {
+              return new Response(JSON.stringify({ access_token: 'token' }), { status: 200 })
+            }
+
+            return new Response(
+              JSON.stringify({
+                errors: [
+                  {
+                    source: { pointer: '/shipment/address_to/postal_code' },
+                    detail: 'Postal code is not valid for the selected neighborhood',
+                  },
+                ],
+              }),
+              { status: 422 },
+            )
+          },
+        },
+      ),
+    /postal_code.*Postal code is not valid/,
+  )
+})
+
 test('admin shipping route parser recognizes quote and create actions', () => {
   assert.deepEqual(
     readAdminShippingAction('/api/book/admin/orders/42/quote-shipping'),
@@ -366,6 +414,10 @@ test('admin shipping route parser recognizes quote and create actions', () => {
   assert.deepEqual(
     readAdminShippingAction('/api/book/admin/orders/42/create-shipment'),
     { kind: 'create', orderId: 42 },
+  )
+  assert.deepEqual(
+    readAdminShippingAction('/api/book/admin/orders/42/auto-shipment'),
+    { kind: 'auto', orderId: 42 },
   )
   assert.deepEqual(readAdminShippingAction('/api/book/admin/orders/nope/create-shipment'), {
     kind: 'invalid',

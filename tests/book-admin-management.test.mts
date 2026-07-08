@@ -27,6 +27,14 @@ const adminApiFiles = [
     path: 'netlify/functions/book-admin-reviews.mts',
     routes: ['/api/book/admin/reviews'],
   },
+  {
+    path: 'netlify/functions/book-admin-shipping.mts',
+    routes: [
+      '/api/book/admin/orders/:id/quote-shipping',
+      '/api/book/admin/orders/:id/create-shipment',
+      '/api/book/admin/orders/:id/auto-shipment',
+    ],
+  },
 ]
 
 const adminUiFiles = [
@@ -207,8 +215,18 @@ test('admin orders shipping action scrolls into the selected order detail', () =
   assert.equal(ordersSource.includes('Task 11'), false)
 })
 
+test('admin orders exposes automatic shipment retry for paid pending orders', () => {
+  const ordersSource = readFileSync('src/admin/AdminOrders.tsx', 'utf8')
+
+  assert.equal(ordersSource.includes('/auto-shipment'), true)
+  assert.equal(ordersSource.includes('Crear guía automática'), true)
+})
+
 test('admin shipping path supplies complete Skydropx address fields from real order data', () => {
-  const shippingSource = readFileSync('netlify/functions/book-admin-shipping.mts', 'utf8')
+  const shippingSource = [
+    readFileSync('netlify/functions/book-admin-shipping.mts', 'utf8'),
+    readFileSync('netlify/functions/_shared/book/shipping-fulfillment.mts', 'utf8'),
+  ].join('\n')
   const envExample = readFileSync('.env.example', 'utf8')
 
   assert.equal(shippingSource.includes('company: detail.order.customerName'), true)
