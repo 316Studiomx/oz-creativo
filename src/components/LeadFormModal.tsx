@@ -69,7 +69,7 @@ export function LeadFormModal({ open, onClose }: Props) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center px-4 py-4 md:px-8 md:py-6">
+    <div className="lead-form-modal fixed inset-0 z-[80] flex items-center justify-center px-4 py-4 md:px-8 md:py-6">
       <button
         type="button"
         aria-label="Cerrar formulario"

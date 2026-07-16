@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const leadFormSource = readFileSync('src/components/LeadForm.tsx', 'utf8')
+const leadFormModalSource = readFileSync('src/components/LeadFormModal.tsx', 'utf8')
+const cursorSource = readFileSync('src/components/Cursor.tsx', 'utf8')
+const stylesSource = readFileSync('src/styles/index.css', 'utf8')
 const appsScriptSource = readFileSync('scripts/google-apps-script/contact-form.gs', 'utf8')
 const proposalPageSource = readFileSync('src/components/ProposalPage.tsx', 'utf8')
 
@@ -56,4 +59,17 @@ test('private proposal page uses checkout buttons instead of transfer instructio
   assert.equal(proposalPageSource.includes('CLABE'), false)
   assert.equal(proposalPageSource.includes('Enviar comprobante'), false)
   assert.equal(proposalPageSource.includes('Mercado Pago'), true)
+})
+
+test('proposal modal keeps the cursor visible over form controls', () => {
+  assert.equal(leadFormModalSource.includes('lead-form-modal'), true)
+  assert.equal(leadFormSource.includes('name={name}'), true)
+  assert.equal(cursorSource.includes('nativeCursorZone'), true)
+  assert.equal(cursorSource.includes("visibility = nativeCursorZone ? 'hidden' : 'visible'"), true)
+  assert.match(cursorSource, /z-\[\d+\]/)
+  assert.match(stylesSource, /\.lead-form-modal[\s\S]*cursor: auto/)
+  assert.match(stylesSource, /\.lead-form-modal[\s\S]*button[\s\S]*cursor: pointer/)
+  assert.match(stylesSource, /\.lead-form-modal[\s\S]*input[\s\S]*cursor: text/)
+  assert.match(stylesSource, /\.lead-form-modal[\s\S]*textarea[\s\S]*cursor: text/)
+  assert.match(stylesSource, /\.lead-form-modal[\s\S]*select[\s\S]*cursor: pointer/)
 })

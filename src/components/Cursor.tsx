@@ -19,12 +19,16 @@ export function Cursor() {
     let pulseTimer = 0
     let hovering = false
     let pressing = false
+    let nativeCursorZone = false
 
     const onMove = (e: PointerEvent) => {
       pos.x = e.clientX
       pos.y = e.clientY
       const t = e.target as HTMLElement
-      hovering = !!t.closest('a, button, [data-hover]')
+      nativeCursorZone = !!t.closest(
+        '.lead-form-modal, .admin-shell, input, textarea, select, [contenteditable="true"]',
+      )
+      hovering = !nativeCursorZone && !!t.closest('a, button, [data-hover]')
     }
 
     const onDown = () => {
@@ -62,11 +66,14 @@ export function Cursor() {
 
       if (target.current) {
         target.current.style.transform = `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%) scale(${hoverScale * clickScale})`
-        target.current.style.opacity = hovering ? '1' : '0.92'
+        target.current.style.opacity = nativeCursorZone ? '0' : hovering ? '1' : '0.92'
+        target.current.style.visibility = nativeCursorZone ? 'hidden' : 'visible'
         target.current.style.filter = glowFilter
       }
       if (pulse.current) {
         pulse.current.style.transform = `translate(${pos.x}px, ${pos.y}px) translate(-50%, -50%)`
+        pulse.current.style.opacity = nativeCursorZone ? '0' : '1'
+        pulse.current.style.visibility = nativeCursorZone ? 'hidden' : 'visible'
       }
       raf = requestAnimationFrame(loop)
     }

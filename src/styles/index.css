@@ -69,6 +69,30 @@ html.lenis body {
   cursor: not-allowed;
 }
 
+.lead-form-modal,
+.lead-form-modal * {
+  cursor: auto;
+}
+
+.lead-form-modal a,
+.lead-form-modal button,
+.lead-form-modal [role='button'],
+.lead-form-modal select {
+  cursor: pointer;
+}
+
+.lead-form-modal input,
+.lead-form-modal textarea {
+  cursor: text;
+}
+
+.lead-form-modal button:disabled,
+.lead-form-modal input:disabled,
+.lead-form-modal textarea:disabled,
+.lead-form-modal select:disabled {
+  cursor: not-allowed;
+}
+
 @layer components {
   .container-x {
     @apply mx-auto w-full max-w-[1400px] px-6 md:px-10 lg:px-16;

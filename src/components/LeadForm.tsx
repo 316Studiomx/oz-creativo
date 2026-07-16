@@ -266,6 +266,7 @@ export function LeadForm() {
               ¿Cuál es el objetivo que te gustaría alcanzar con este proyecto?
             </span>
             <textarea
+              name="objetivo"
               value={form.objetivo}
               onChange={(event) => update('objetivo', event.target.value)}
               required
@@ -580,6 +581,7 @@ function TextField({
     <label className={className}>
       <span className="text-sm font-medium text-paper">{label}</span>
       <input
+        name={name}
         type={type}
         value={value || ''}
         onChange={(event) => onChange(name, event.target.value)}
@@ -610,6 +612,7 @@ function SelectField({
     <label>
       <span className="text-sm font-medium text-paper">{label}</span>
       <select
+        name={name}
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
         required={required}
